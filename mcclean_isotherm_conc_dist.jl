@@ -1,3 +1,4 @@
+module McCleanIsotherm
 
 include("interaction_types.jl")
 
@@ -5,6 +6,8 @@ using Plots
 using NLsolve
 using Dierckx
 using InteractionTypes
+
+export get_concentration_distance_dependence
 
 """
 This solves for the equilibrium carbon/solute concentration within a
@@ -312,42 +315,85 @@ function plot_conc_vs_temperature(T, Ckk, energies, plot_type)
 end
 
 
+function make_dir_if_nonexist(dirname)
+    if !isdir(dirname)
+        mkdir(dirname)
+    end
+end
+
+function collect_concentrations(C_nom, ρi, solute_int)
+    # Hardcoding the length the concentrations == length distances + 1...
+    C = zeros(length(C_nom), 26)
+
+    for (i,C_nomi) in enumerate(C_nom)
+        S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
+        tidx = find( x -> x==op_temp, T  )
+        C[i,:] .= vcat(Ckk[tidx,:]...)
+        println("ρ = ", ρi)
+        println("C_nom = $(floor(Int64,C_nomi)) = ", C_nomi)
+        println("C = ", C[i,:])
+    end
+
+    return C, distances
+end
+
+function plot_concentration_distance_dependence()
+    Tf = 1200
+    T = collect(Float64, 0:10:Tf)
+    ρ = Float64[ 1.e12, 1.e14, 1.e15, 0.5e16 ]
+    C_nom = [ 10., 100., 433., 1000.] ./ 1e6
+
+    # Using the lorentzian for the interaction between solute and dislocation
+    solute_int = C_Lorentzian{Float64}()
+
+    for ρi in ρ
+        C, distances = collect_concentrations(C_nom, ρi, solute_int)
+
+        Å =  1e-10
+        a = 2.87Å
+        b = √3/2 * a
+        b_mag = 2.87 * √3 / 2
+
+        # Plot the concentrations found at operating temperatures for all sites around the core
+        # > Plot it against the energy index
+
+        pyplot( xlims = (0, maximum(distances./b_mag)),
+                ylims = (0, 1),
+                size=(800,600),
+                xticks=collect(0:0.5:2.5),
+                yticks=collect(0:0.2:1), legend=false)
+
+        fnt = Plots.font( "Helvetica", 30 )
+        default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
+
+
+        xlabel!("Distance [b]")
+        ylabel!("Cd")
+
+        # Plot of the distance dependence of the in Burger's vectors
+
+        for (i,C_nomi) in enumerate(C_nom)
+            if i == 1
+                p = plot( distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+            elseif i == length(C_nom)
+                break
+            else
+                plot!(distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+            end
+        end
+        plot!(distances./b_mag, C[end,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+
+        path="figures"
+        cd("figures")
+
+        ρ_string = @sprintf("%.2E", ρi)
+        output="concentration_vs_solute_distance_$(ρ_string)_appm"
+        png(output)
+        cd("..")
+    end
+end
 
 
 
-const Tf = 1200
-T = collect(Float64, 0:10:Tf)
-ρ = Float64[ 1.e12, 1.e14, 1.e15, 0.5e16 ]
-C_nom = [ 10., 100., 433., 1000.] ./ 1e6
-
-# Using the lorentzian for the interaction between solute and dislocation
-solute_int = C_Lorentzian{Float64}()
-
-
-C_nomi = C_nom[3]
-ρi = ρ[3]
-
-S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
-
-const Å =  1e-10
-const a = 2.87Å
-const b = √3/2 * a
-const b_mag = 2.87 * √3 / 2
-
-# Plot the concentrations found at operating temperatures for all sites around the core
-# > Plot it against the energy index
-
-# C_nom = [ 10., 100., 433., 1000.] ./ 1e6
-pyplot( xlims = (minimum(distances), maximum(distances)),
-        ylims = (0, 1),
-        size=(800,600),
-        xticks=collect(0:200:Tf),
-        yticks=collect(0:0.2:1.2), legend=false)
-
-fnt = Plots.font( "Helvetica", 30 )
-default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
-
-
-# Plot of the distance dependence of the in Burger's vectors
-tidx = find( x -> x==op_temp, T  )
-plot(distances./b_mag, vcat( Ckk[tidx, : ]... ) )
+# plot_concentration_distance_dependence()
+end
