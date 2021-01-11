@@ -1,6 +1,11 @@
+
+include("interaction_types.jl")
+
 using Plots
 using NLsolve
 using Dierckx
+using InteractionTypes
+
 """
 This solves for the equilibrium carbon/solute concentration within a
 thermodynamical mean-field model.
@@ -40,7 +45,7 @@ Outputs:
 
 """
 
-export get_concentration_distance_dependence
+# export get_concentration_distance_dependence
 
 struct Seg{T <: AbstractFloat}
     E⁰::T
@@ -175,6 +180,11 @@ end
 ###---      Obtaining distance dependence of self-consistent concentration      ---###
 
 function get_concentration_data(C_nomi, ρi, energies, T, V_CC_ventelon)
+    Å =  1e-10
+    a = 2.87Å
+    b = √3/2 * a
+    kb = 0.000086173324 # eV/K
+
     all_Cₖ = zeros(Float64, length(T), length(energies))
     D = DislSystem( ρi, 1., a, b, C_nomi )
     
@@ -208,7 +218,7 @@ end
 
 ####----     Interpolate between the energy points    ----####
 
-function get_concentration_distance_dependence(C_nom, ρ, solute_int, lorentzian)
+function get_concentration_distance_dependence(C_nom, ρ, solute_int)
     # > We have the binding energy of carbon as a function of distance from the dislocation core.
     # > One can sample from this distribution at multiple points and obtain the concentration as a function of distance at a certain temperature.
     # > Operating temperature is 320K
@@ -239,7 +249,7 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int, lorentzian
     b_mag = 2.87 * √3 / 2
     # Want range which is up to 2.5 burgers vectors
     distances = collect(0:0.1:2.5) .* b_mag
-    energies = [ lorentzian( solute_int, d/b_mag ) for d in distances ]
+    energies = [ -lorentzian( solute_int, d/b_mag ) for d in distances ]
     
     all_Cₖ = get_concentration_data(C_nom, ρ, energies, T, V_CC_ventelon)
     Ckk = clean_concentration_data(all_Cₖ, energies, T)
@@ -252,17 +262,92 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int, lorentzian
     # > We can interpolate this function as a spline and return the function.
     # > Would make sense to have this in interaction types for clarity and brevity, where we can export the type and define the gradient as such. 
 
-    # This is defined where the distances are in angstrom, so no conversion 
-    S  = Spline1D(distances, Ckk[ tidx, : ], w = ones(length(x)), k = 3, bc = "error")
+    # This is defined where the distances are in angstrom, so no conversion
+    xi = vcat(Ckk[ tidx, : ]...)
+    S  = Spline1D(distances, xi, w = ones(length(xi)), k = 3, bc = "error")
     dS = x -> derivative(S, x)
 
-    return S, dS, Ckk, T, distances
+
+
+    return S, dS, Ckk, T, distances, energies
 
 end
 
-S, dS, Ckk, T, distances = get_concentration_distance_dependence(C_nom, ρ, solute_int, lorentzian)
 
-pyplot()
+function plot_conc_vs_temperature(T, Ckk, energies, plot_type)
 
-plot(  )
+    if plot_type == "Easy"
+        labels = ["E1 ", "E2 ", "E3 ", "E4 ", "E5 ", "E6 ", "E7 ", "E8 ", "E9 ", "E10"]
+    elseif plot_type == "Hard"
+        labels = [   "H1 ", "H2 ", "H3 ", "H4 ", "H5 ", "H6 ", "H7 "]
+    end
 
+
+    pyplot( xlims = (0, Tf),
+            ylims = (0, 1),
+            size=(800,600),
+            xticks=collect(0:200:Tf),
+            yticks=collect(0:0.2:1.2), legend=false)
+
+   fnt = Plots.font( "Helvetica", 30 )
+   default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
+
+   colors = palette(:tab10)
+   ls = [:solid, :dash, :dot, :dashdot]
+
+   ###---   For the easy core
+    for i in 1:length(energies[1:10])
+        if i == j == 1
+            pp = plot(T, Ckk[:,i,j,k], label = labels[i], linestyle=ls[j], linewidth=3, show=false, linecolor=colors[i])
+            xlabel!("T[K]")
+            ylabel!("Cd")
+        elseif j == 1
+            plot!(T, Ckk[:,i,j,k], label = labels[i], linestyle=ls[j], linewidth=3, show=false, linecolor=colors[i])
+            # elseif i == length(energies) && j == length(ρ)
+            #     break
+        else
+            plot!(T, Ckk[:,i,j,k], linestyle=ls[j], linewidth=3, show=false, label="", linecolor=colors[i])
+        end
+    end
+end
+
+
+
+
+
+const Tf = 1200
+T = collect(Float64, 0:10:Tf)
+ρ = Float64[ 1.e12, 1.e14, 1.e15, 0.5e16 ]
+C_nom = [ 10., 100., 433., 1000.] ./ 1e6
+
+# Using the lorentzian for the interaction between solute and dislocation
+solute_int = C_Lorentzian{Float64}()
+
+
+C_nomi = C_nom[3]
+ρi = ρ[3]
+
+S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
+
+const Å =  1e-10
+const a = 2.87Å
+const b = √3/2 * a
+const b_mag = 2.87 * √3 / 2
+
+# Plot the concentrations found at operating temperatures for all sites around the core
+# > Plot it against the energy index
+
+# C_nom = [ 10., 100., 433., 1000.] ./ 1e6
+pyplot( xlims = (minimum(distances), maximum(distances)),
+        ylims = (0, 1),
+        size=(800,600),
+        xticks=collect(0:200:Tf),
+        yticks=collect(0:0.2:1.2), legend=false)
+
+fnt = Plots.font( "Helvetica", 30 )
+default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
+
+
+# Plot of the distance dependence of the in Burger's vectors
+tidx = find( x -> x==op_temp, T  )
+plot(distances./b_mag, vcat( Ckk[tidx, : ]... ) )
