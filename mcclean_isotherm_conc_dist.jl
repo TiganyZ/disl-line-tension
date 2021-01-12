@@ -324,7 +324,7 @@ end
 function collect_concentrations(C_nom, ρi, solute_int)
     # Hardcoding the length the concentrations == length distances + 1...
     C = zeros(length(C_nom), 26)
-
+    op_temp = 320.
     for (i,C_nomi) in enumerate(C_nom)
         S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
         tidx = find( x -> x==op_temp, T  )
@@ -333,8 +333,7 @@ function collect_concentrations(C_nom, ρi, solute_int)
         println("C_nom = $(floor(Int64,C_nomi)) = ", C_nomi)
         println("C = ", C[i,:])
     end
-
-    return C, distances
+    return C
 end
 
 function plot_concentration_distance_dependence()
@@ -346,48 +345,53 @@ function plot_concentration_distance_dependence()
     # Using the lorentzian for the interaction between solute and dislocation
     solute_int = C_Lorentzian{Float64}()
 
-    for ρi in ρ
-        C, distances = collect_concentrations(C_nom, ρi, solute_int)
+    C_all = []
+    for (j,ρi) in enumerate(ρ[1:end-1])
+        C = collect_concentrations(C_nom, ρi, solute_int)
+
+        push!(C_all, C)
 
         Å =  1e-10
         a = 2.87Å
         b = √3/2 * a
         b_mag = 2.87 * √3 / 2
 
+        distances = collect(0:0.1:2.5) .* b_mag
         # Plot the concentrations found at operating temperatures for all sites around the core
         # > Plot it against the energy index
 
         pyplot( xlims = (0, maximum(distances./b_mag)),
                 ylims = (0, 1),
-                size=(800,600),
+                size=(1200,600),
                 xticks=collect(0:0.5:2.5),
                 yticks=collect(0:0.2:1), legend=false)
 
-        fnt = Plots.font( "Helvetica", 30 )
+        fnt = Plots.font( "Helvetica", 25 )
         default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
-
-
-        xlabel!("Distance [b]")
-        ylabel!("Cd")
+        colors = palette(:tab10)
+        ls = [:solid, :dash, :dot, :dashdot]
 
         # Plot of the distance dependence of the in Burger's vectors
 
         for (i,C_nomi) in enumerate(C_nom)
-            if i == 1
-                p = plot( distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+            if i == 1 && j == 1
+                plot( distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3, linestyle=ls[j], show=false, linecolor=colors[i] )
             elseif i == length(C_nom)
                 break
             else
-                plot!(distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+                plot!(distances./b_mag, C[i,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3, linestyle=ls[j], show=false, linecolor=colors[i] )
             end
         end
-        plot!(distances./b_mag, C[end,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3 )
+        xlabel!("Distance [b]")
+        ylabel!("Cd")
+        plot!(distances./b_mag, C[end,:], label="$(floor(Int64, C_nomi*1e6)) appm", lw=3, linestyle=ls[j], show=false, linecolor=colors[4] )
 
         path="figures"
         cd("figures")
 
         ρ_string = @sprintf("%.2E", ρi)
-        output="concentration_vs_solute_distance_$(ρ_string)_appm"
+        output="concentration_vs_solute_distance_all"
+        #        output="concentration_vs_solute_distance_$(ρ_string)_appm"
         png(output)
         cd("..")
     end
