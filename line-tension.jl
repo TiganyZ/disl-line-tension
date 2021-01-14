@@ -6,25 +6,34 @@
 # thisDir = dirname(@__FILE__())
 # any(path -> path == thisDir, LOAD_PATH) || push!( LOAD_PATH, thisDir )
 
- include("interaction_types.jl")
- include("peierls_potential.jl")
- include("dislocation_types.jl")
+include("interaction_types.jl")
+include("peierls_potential.jl")
+include("dislocation_types.jl")
+include("mcclean_isotherm_conc_dist.jl")
 
- using PeierlsPotential
- using DislocationTypes
- using InteractionTypes
- using StaticArrays
+using PeierlsPotential
+using DislocationTypes
+using InteractionTypes
+using McCleanIsotherm
+using StaticArrays
 
- using Plots
- using Dierckx
+using Plots
+using Dierckx
 
- using Parameters
- using SaddleSearch
+using Parameters
+using SaddleSearch
 
 
 
-function line_tension_model( N, potential="Normal", stress=zeros(3,3), interaction_type="C" )
+function line_tension_model( N, potential="Normal", stress=zeros(3,3), interaction_type="C",
+                             C_nom=433./1e6, ρ=1.e15, redistribute=true, mcclean=true )
     # Define dislocation
+    # > N = Number of images for the String method
+    # > C_nom is the nominal carbon concentration
+    # > ρ is the dislocation density
+    # > redistribute switches the redistribution of the sites on or off
+    # > mcclean switches the partial occupancies on, otherwise the position of the solute atoms remain fixed.
+
     global N_iter_total, N_images, name, scale
 
     file_ext = "$(name)_$(potential)_$(scale)"
@@ -55,24 +64,13 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
         K = 0.734166 * conv
     end
 
-    # We need to ascertain all the sites along the line.
-    
-    # > Use McClean Isotherm self-consistent solution such that we can
-    # > find the probability of occupancy of a particular trap site by
-    #   χᵢ = Cₖ, from the McClean Isotherm
+    if mcclean
+        # Get the splines (and it's derivative) which determine the concentration of a solute with distance
+        C, dC = get_concentration_distance_dependence_splines(C_nom, ρ, interaction)
+    else
+        C = dC = x -> 0
+    end
 
-    # > The /total/ carbon occupancy is constant, i.e. ∑χᵢ = const.
-    # > This means that carbon will redistribute among the traps within the plane perpendicular to the dislocation.
-
-    # > For slow glide, and the maintenence of equilibrium, then as
-    # > the dislocation moves between the two Peierls valleys we can
-    # > define an occupation probability
-    #    χᵉᵢ(x) = χₜ exp{ -Eᵢ(x)/kT } / ∑ᵢexp{ -Eᵢ(x)/kT }
-    # > Where Eᵢ(x) is the interaction energy given by a lorentzian function among all the trap sites.
-
-    # > Can assume that the nominal carbon concentration is at 433 appm, the solubility limit of 0.02wt% ferrite.
-    # > 
-    
     
     interact = true
     p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 

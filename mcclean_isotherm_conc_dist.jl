@@ -7,7 +7,7 @@ using NLsolve
 using Dierckx
 using InteractionTypes
 
-export get_concentration_distance_dependence
+export get_concentration_distance_dependence_splines
 
 """
 This solves for the equilibrium carbon/solute concentration within a
@@ -251,7 +251,7 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int)
     T = collect(Float64, 200:10:Tf) 
     b_mag = 2.87 * √3 / 2
     # Want range which is up to 2.5 burgers vectors
-    distances = collect(0:0.1:2.5) .* b_mag
+    distances = collect(0:0.1:5) .* b_mag
     energies = [ -lorentzian( solute_int, d/b_mag ) for d in distances ]
     
     all_Cₖ = get_concentration_data(C_nom, ρ, energies, T, V_CC_ventelon)
@@ -271,11 +271,15 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int)
     dS = x -> derivative(S, x)
 
 
-
     return S, dS, Ckk, T, distances, energies
 
 end
 
+
+function get_concentration_distance_dependence_splines(C_nom, ρ, solute_int)
+    S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nom, ρ, solute_int)
+    return S, dS
+end
 
 function plot_conc_vs_temperature(T, Ckk, energies, plot_type)
 
@@ -323,7 +327,7 @@ end
 
 function collect_concentrations(C_nom, ρi, solute_int)
     # Hardcoding the length the concentrations == length distances + 1...
-    C = zeros(length(C_nom), 26)
+    C = zeros(length(C_nom), 51)
     op_temp = 320.
     for (i,C_nomi) in enumerate(C_nom)
         S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
@@ -356,7 +360,7 @@ function plot_concentration_distance_dependence()
         b = √3/2 * a
         b_mag = 2.87 * √3 / 2
 
-        distances = collect(0:0.1:2.5) .* b_mag
+        distances = collect(0:0.1:5) .* b_mag
         # Plot the concentrations found at operating temperatures for all sites around the core
         # > Plot it against the energy index
 
