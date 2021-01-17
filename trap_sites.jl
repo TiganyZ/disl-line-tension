@@ -1,3 +1,5 @@
+import Base
+using Plots
 
 """ This file describes the trap site occupation and the
 redistribution of the trap site probabilities
@@ -45,7 +47,32 @@ We need to ascertain all the sites along the line.
 
     Tuples control the type of trap site and the sector in which it lies.
 
+    One can get the positions from the dictionaries
+
  """
+
+
+struct SiteLabel
+    site::String
+    section::Int64
+end
+
+# Note: Even though this type is apparently immutable, there is a problem with indexing the dictionaries with the keys as these types.
+#     > This is apparently only a problem with mutable structs, yet this isn't...
+
+# >> Workaround by overloading Base.hash() and ==()
+
+import Base.==, Base.convert, Base.hash
+
+==(a::SiteLabel, b::SiteLabel) = a.site == b.site && a.section == b.section
+Base.hash(a::SiteLabel, h::UInt) = hash(a.site, hash(a.section, h))
+
+
+function Base.convert(L::SiteLabel, D::Dict{SiteLabel, Array{Float64,1}})
+    # Convert SiteLabel to position
+    return D[L]
+end
+
 
 function get_octahedral_position_dict(oct_sites, core)
     abcc = 2.87 # * 1.88971616463207
@@ -59,7 +86,7 @@ function get_octahedral_position_dict(oct_sites, core)
     lengths = [ √(3) * alat, alat, q  * alat]
 
     if core == "Ei"
-        core_position = zeros(3)
+        core_position = zeros(2)
         labels = ["Ei1","Ei2","Ei3", "Ei4", "Ei5", "Ei6", "Ei7", "Ei8", "Ei9", "Ei10"]
     elseif core == "Ef"
         core_position = [ 2/6.*lengths[1], 0.]
@@ -69,16 +96,16 @@ function get_octahedral_position_dict(oct_sites, core)
         labels = ["H1", "H2",     "H3", "H4", "H5", "H6", "H7"]
     end
 
-    labels = [ (l,i) for i in 1:6 for l in labels]
+    labels = [ SiteLabel(l,i) for i in 1:6 for l in labels]
 
-    site_pos_dict = Dict{String, Array{Float64,1}}( labels[i] => oct_sites[i,:] + core_position for i in 1:length(labels))
+    site_pos_dict = Dict{SiteLabel, Array{Float64,1}}( labels[i] => oct_sites[i,:] + core_position for i in 1:length(labels))
     return site_pos_dict
 end
 
 function create_trap_labels_to_positions_dict()
-    Ei_dict = get_octahedral_position_dict(get_octahedral_positions("easy"), "Ei")
-    Ef_dict = get_octahedral_position_dict(get_octahedral_positions("easy"), "Ef")
-    H_dict  = get_octahedral_position_dict(get_octahedral_positions("hard"), "H")
+    Ei_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ei")
+    Ef_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ef")
+    H_dict  = get_octahedral_position_dict(get_all_sites_for_core("hard"), "H")
 
     return merge(Ei_dict, Ef_dict, H_dict)
 end
@@ -196,7 +223,7 @@ function get_all_sites_for_core(core_type)
     reflected_oct = zeros(size(oct_sites))
     reflected_oct = reflect_data_about_line!(1, oct_sites, reflected_oct, [0., 1.] )
 
-    oct_sites  = vcat( oct_sites, get_all_oct_sites(reflected_oct, [0,0.]) )
+    oct_sites  = vcat( oct_sites, reflected_oct)
     return oct_sites
 end
 
@@ -229,71 +256,71 @@ function trap_site_paths()
     # 2      5   5      2
     #   6  3       1  4
 
-    Ei-H_paths = Dict( ("Ei1",  1) => (  "H1", 6), # Ei -> H sector 1
-                      ("Ei2",  1) => (  "H1", 6),
-                      ("Ei3",  1) => (  "H1", 6),
-                      ("Ei4",  1) => (  "H1", 6),
-                      ("Ei5",  1) => (  "H2", 3),
-                      ("Ei6",  1) => (  "H2", 6),
-                      ("Ei7",  1) => (  "H2", 6),
-                      ("Ei8",  1) => (  "H2", 3),
-                      ("Ei9",  1) => (  "H2", 6),
-                      ("Ei10", 1) => (  "H6", 6),
+    Ei_H_paths = Dict{SiteLabel, SiteLabel}( SiteLabel("Ei1",  1) => SiteLabel("H1", 6), # Ei -> H sector 1
+                                             SiteLabel("Ei2",  1) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei3",  1) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei4",  1) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei5",  1) => SiteLabel("H2", 3),
+                                             SiteLabel("Ei6",  1) => SiteLabel("H2", 6),
+                                             SiteLabel("Ei7",  1) => SiteLabel("H2", 6),
+                                             SiteLabel("Ei8",  1) => SiteLabel("H2", 3),
+                                             SiteLabel("Ei9",  1) => SiteLabel("H2", 6),
+                                             SiteLabel("Ei10", 1) => SiteLabel("H6", 6),
 
-                      ("Ei1",  2) => (  "H2", 5), # Ei -> H sector 2
-                      ("Ei2",  2) => (  "H2", 5),
-                      ("Ei3",  2) => (  "H2", 5),
-                      ("Ei4",  2) => (  "H2", 5),
-                      ("Ei5",  2) => (  "H7", 1),
-                      ("Ei6",  2) => (  "H3", 5),
-                      ("Ei7",  2) => (  "Ei7", 2),
-                      ("Ei8",  2) => (  "Ei8", 2),
-                      ("Ei9",  2) => (  "H4", 5),
-                      ("Ei10", 2) => (  "H5", 5),
+                                             SiteLabel("Ei1",  2) => SiteLabel("H2", 5), # Ei -> H sector 2
+                                             SiteLabel("Ei2",  2) => SiteLabel("H2", 5),
+                                             SiteLabel("Ei3",  2) => SiteLabel("H2", 5),
+                                             SiteLabel("Ei4",  2) => SiteLabel("H2", 5),
+                                             SiteLabel("Ei5",  2) => SiteLabel("H7", 1),
+                                             SiteLabel("Ei6",  2) => SiteLabel("H3", 5),
+                                             SiteLabel("Ei7",  2) => SiteLabel("Ei7", 2),
+                                             SiteLabel("Ei8",  2) => SiteLabel("Ei8", 2),
+                                             SiteLabel("Ei9",  2) => SiteLabel("H4", 5),
+                                             SiteLabel("Ei10", 2) => SiteLabel("H5", 5),
 
-                      ("Ei1",  3) => (  "H2", 1), # Ei -> H sector 3
-                      ("Ei2",  3) => (  "H2", 1),
-                      ("Ei3",  3) => (  "H2", 4),
-                      ("Ei4",  3) => (  "H6", 1),
-                      ("Ei5",  3) => (  "H2", 4),
-                      ("Ei6",  3) => (  "H5", 4),
-                      ("Ei7",  3) => (  "H4", 4),
-                      ("Ei8",  3) => (  "H2", 4),
-                      ("Ei9",  3) => (  "H5", 1),
-                      ("Ei10", 3) => (  "H5", 1),
+                                             SiteLabel("Ei1",  3) => SiteLabel("H2", 1), # Ei -> H sector 3
+                                             SiteLabel("Ei2",  3) => SiteLabel("H2", 1),
+                                             SiteLabel("Ei3",  3) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei4",  3) => SiteLabel("H6", 1),
+                                             SiteLabel("Ei5",  3) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei6",  3) => SiteLabel("H5", 4),
+                                             SiteLabel("Ei7",  3) => SiteLabel("H4", 4),
+                                             SiteLabel("Ei8",  3) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei9",  3) => SiteLabel("H5", 1),
+                                             SiteLabel("Ei10", 3) => SiteLabel("H5", 1),
 
-                      ("Ei1",  4) => (  "H2", 5), # Ei -> H sector 4
-                      ("Ei2",  4) => (  "H2", 5),
-                      ("Ei3",  4) => (  "H2", 3),
-                      ("Ei4",  4) => (  "H6", 3),
-                      ("Ei5",  4) => (  "H2", 3),
-                      ("Ei6",  4) => (  "H5", 3),
-                      ("Ei7",  4) => (  "H4", 3),
-                      ("Ei8",  4) => (  "H2", 4),
-                      ("Ei9",  4) => (  "H5", 5),
-                      ("Ei10", 4) => (  "Ei10", 4),
+                                             SiteLabel("Ei1",  4) => SiteLabel("H2", 5), # Ei -> H sector 4
+                                             SiteLabel("Ei2",  4) => SiteLabel("H2", 5),
+                                             SiteLabel("Ei3",  4) => SiteLabel("H2", 3),
+                                             SiteLabel("Ei4",  4) => SiteLabel("H6", 3),
+                                             SiteLabel("Ei5",  4) => SiteLabel("H2", 3),
+                                             SiteLabel("Ei6",  4) => SiteLabel("H5", 3),
+                                             SiteLabel("Ei7",  4) => SiteLabel("H4", 3),
+                                             SiteLabel("Ei8",  4) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei9",  4) => SiteLabel("H5", 5),
+                                             SiteLabel("Ei10", 4) => SiteLabel("Ei10", 4),
 
-                      ("Ei1",  5) => (  "H1", 6), # Ei -> H sector 5
-                      ("Ei2",  5) => (  "H1", 6),
-                      ("Ei3",  5) => (  "H1", 6),
-                      ("Ei4",  5) => (  "H1", 6),
-                      ("Ei5",  5) => (  "H2", 4),
-                      ("Ei6",  5) => (  "H2", 2),
-                      ("Ei7",  5) => (  "H2", 2),
-                      ("Ei8",  5) => (  "H2", 4),
-                      ("Ei9",  5) => (  "H2", 2),
-                      ("Ei10", 5) => (  "H6", 2),
+                                             SiteLabel("Ei1",  5) => SiteLabel("H1", 6), # Ei -> H sector 5
+                                             SiteLabel("Ei2",  5) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei3",  5) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei4",  5) => SiteLabel("H1", 6),
+                                             SiteLabel("Ei5",  5) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei6",  5) => SiteLabel("H2", 2),
+                                             SiteLabel("Ei7",  5) => SiteLabel("H2", 2),
+                                             SiteLabel("Ei8",  5) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei9",  5) => SiteLabel("H2", 2),
+                                             SiteLabel("Ei10", 5) => SiteLabel("H6", 2),
 
-                      ("Ei1",  6) => (  "H2", 1), # Ei -> H sector 5
-                      ("Ei2",  6) => (  "H2", 1),
-                      ("Ei3",  6) => (  "H2", 1),
-                      ("Ei4",  6) => (  "H2", 1),
-                      ("Ei5",  6) => (  "H7", 1),
-                      ("Ei6",  6) => (  "H3", 1),
-                      ("Ei7",  6) => (  "Ei7",  6),
-                      ("Ei8",  6) => (  "Ei8",  6),
-                      ("Ei9",  6) => (  "H4", 1),
-                      ("Ei10", 6) => (  "H4", 2) )
+                                             SiteLabel("Ei1",  6) => SiteLabel("H2", 1), # Ei -> H sector 5
+                                             SiteLabel("Ei2",  6) => SiteLabel("H2", 1),
+                                             SiteLabel("Ei3",  6) => SiteLabel("H2", 1),
+                                             SiteLabel("Ei4",  6) => SiteLabel("H2", 1),
+                                             SiteLabel("Ei5",  6) => SiteLabel("H7", 1),
+                                             SiteLabel("Ei6",  6) => SiteLabel("H3", 1),
+                                             SiteLabel("Ei7",  6) => SiteLabel("Ei7",  6),
+                                             SiteLabel("Ei8",  6) => SiteLabel("Ei8",  6),
+                                             SiteLabel("Ei9",  6) => SiteLabel("H4", 1),
+                                             SiteLabel("Ei10", 6) => SiteLabel("H4", 2) )
 
     # >> Might be worth mapping some of the E7/8/9/10 sites (on the left, which are outside the range of the sampled hard core sites) to zero.
     # >> One can argue by not doing this we are simulating how carbon moves *with* the dislocation.
@@ -308,62 +335,200 @@ function trap_site_paths()
 
     # If a site is mappee to the same position we can set the criteria
 
-    H-Ef_paths = Dict( ("H1", 1) => ("Ef1", 1),
-                       ("H2", 1) => ("Ef5", 2), # Ef1/Ef2 Lower
-                       ("H3", 1) => ("H3", 1),
-                       ("H4", 1) => ("Ef7", 6),
-                       ("H5", 1) => ("Ef6", 6), # Ef1/Ef2 Left
-                       ("H6", 1) => ("Ef4", 6),
-                       ("H7", 1) => ("Ef8", 2), # Can be mapped to same position
+    H_Ef_paths = Dict{SiteLabel,SiteLabel}( SiteLabel("H1", 1) => SiteLabel("Ef1", 1),
+                                            SiteLabel("H2", 1) => SiteLabel("Ef5", 2), # Ef1/Ef2 Lower
+                                            SiteLabel("H3", 1) => SiteLabel("H3", 1),
+                                            SiteLabel("H4", 1) => SiteLabel("Ef7", 6),
+                                            SiteLabel("H5", 1) => SiteLabel("Ef6", 6), # Ef1/Ef2 Left
+                                            SiteLabel("H6", 1) => SiteLabel("Ef4", 6),
+                                            SiteLabel("H7", 1) => SiteLabel("Ef8", 2), # Can be mapped to same position
 
-                       ("H1", 2) => ("Ef1", 1),
-                       ("H2", 2) => ("Ef2", 5),
-                       ("H3", 2) => ("Ef6", 5),
-                       ("H4", 2) => ("Ef9", 5),
-                       ("H5", 2) => ("Ef9", 1),
-                       ("H6", 2) => ("Ef4", 1),
-                       ("H7", 2) => ("Ef6", 3),
+                                            SiteLabel("H1", 2) => SiteLabel("Ef1", 1),
+                                            SiteLabel("H2", 2) => SiteLabel("Ef2", 5),
+                                            SiteLabel("H3", 2) => SiteLabel("Ef6", 5),
+                                            SiteLabel("H4", 2) => SiteLabel("Ef9", 5),
+                                            SiteLabel("H5", 2) => SiteLabel("Ef9", 1),
+                                            SiteLabel("H6", 2) => SiteLabel("Ef4", 1),
+                                            SiteLabel("H7", 2) => SiteLabel("Ef6", 3),
 
-                       ("H1", 3) => ("Ef1", 1),
-                       ("H2", 3) => ("Ef6", 4),
-                       ("H3", 3) => ("H3", 3), # Can really be mapped outside or to the same site and bulk binding
-                       ("H4", 3) => ("H4", 3),
-                       ("H5", 3) => ("H5", 3),
-                       ("H6", 3) => ("Ef10", 4),
-                       ("H7", 3) => ("H7", 3),
+                                            SiteLabel("H1", 3) => SiteLabel("Ef1", 1),
+                                            SiteLabel("H2", 3) => SiteLabel("Ef6", 4),
+                                            SiteLabel("H3", 3) => SiteLabel("H3", 3), # Can really be mapped outside or to the same site and bulk binding
+                                            SiteLabel("H4", 3) => SiteLabel("H4", 3),
+                                            SiteLabel("H5", 3) => SiteLabel("H5", 3),
+                                            SiteLabel("H6", 3) => SiteLabel("Ef10", 4),
+                                            SiteLabel("H7", 3) => SiteLabel("H7", 3),
 
-                       ("H1", 4) => ("Ef1", 1),
-                       ("H2", 4) => ("Ef2", 3),
-                       ("H3", 4) => ("Ef6", 3),
-                       ("H4", 4) => ("Ef9", 3),
-                       ("H5", 4) => ("Ef9", 6),
-                       ("H6", 4) => ("Ef4", 6),
-                       ("H7", 4) => ("Ef5", 3),
+                                            SiteLabel("H1", 4) => SiteLabel("Ef1", 1),
+                                            SiteLabel("H2", 4) => SiteLabel("Ef2", 3),
+                                            SiteLabel("H3", 4) => SiteLabel("Ef6", 3),
+                                            SiteLabel("H4", 4) => SiteLabel("Ef9", 3),
+                                            SiteLabel("H5", 4) => SiteLabel("Ef9", 6),
+                                            SiteLabel("H6", 4) => SiteLabel("Ef4", 6),
+                                            SiteLabel("H7", 4) => SiteLabel("Ef5", 3),
 
-                       ("H1", 5) => ("Ef1", 1),
-                       ("H2", 5) => ("Ef6", 2),
-                       ("H3", 5) => ("H3", 5),
-                       ("H4", 5) => ("H4", 5),
-                       ("H5", 5) => ("H5", 5),
-                       ("H6", 5) => ("Ef10", 2),
-                       ("H7", 5) => ("H7", 5),
+                                            SiteLabel("H1", 5) => SiteLabel("Ef1", 1),
+                                            SiteLabel("H2", 5) => SiteLabel("Ef6", 2),
+                                            SiteLabel("H3", 5) => SiteLabel("H3", 5),
+                                            SiteLabel("H4", 5) => SiteLabel("H4", 5),
+                                            SiteLabel("H5", 5) => SiteLabel("H5", 5),
+                                            SiteLabel("H6", 5) => SiteLabel("Ef10", 2),
+                                            SiteLabel("H7", 5) => SiteLabel("H7", 5),
 
-                       ("H1", 6) => ("Ef1", 1), # Sector 6
-                       ("H2", 6) => ("Ef5", 1),
-                       ("H3", 6) => ("H3", 6),
-                       ("H4", 6) => ("Ef7", 1),
-                       ("H5", 6) => ("Ef6", 1),
-                       ("H6", 6) => ("Ef4", 1),
-                       ("H7", 6) => ("H7", 6) )
+                                            SiteLabel("H1", 6) => SiteLabel("Ef1", 1), # Sector 6
+                                            SiteLabel("H2", 6) => SiteLabel("Ef5", 1),
+                                            SiteLabel("H3", 6) => SiteLabel("H3", 6),
+                                            SiteLabel("H4", 6) => SiteLabel("Ef7", 1),
+                                            SiteLabel("H5", 6) => SiteLabel("Ef6", 1),
+                                            SiteLabel("H6", 6) => SiteLabel("Ef4", 1),
+                                            SiteLabel("H7", 6) => SiteLabel("H7", 6) )
 
 
-    return merge(Ei-H_paths, H-Ef_paths)
+    return merge(Ei_H_paths, H_Ef_paths)
 end
 
 
 function obtain_trap_mappings()
-    trap_label_to_position = create_trap_labels_to_positions_dict()
-    trap_site_paths = trap_site_paths()
+    label_to_position = create_trap_labels_to_positions_dict()
+    site_paths = trap_site_paths()
 
+    # positions is a  4 x N_trap_sites size array, where each column is an xi,yi,xf,yf array
+    positions = hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in site_paths]...)
+    return positions
+end
+
+
+function create_lattice()
+
+    abcc = 2.87 # * 1.88971616463207
+    alat = √2 * abcc
+
+    # plat = reshape([17.32050807568877, 0.0, 0.0 ,0.0 ,16.0 ,0.0 ,0.0 ,0.0, 0.6123724356957945] * alat, (3,3) )
+
+    # For radial configuration
+    q = √(3./8.) # This should work for bcc...
+
+    lengths = [ √(3)  1.]
+
+    plat = [[√(3)  0];
+            [0.    1] ]
+
+    bcc_unit_cell = [[  0.0   0.   ];
+                     [  1/3   0.   ];
+                     [  2/3.  0.   ];
+                     [  0.5   0.5  ];
+                     [  5/6.  0.5  ];
+                     [  1/6.  0.5  ]] .* lengths
+
+
+    # Build lattice of the unit cell to plot
+
+    nxyz = (2, 2)
+
+
+    lattice = zeros( size(bcc_unit_cell)[1]*( (2*nxyz[1]+1)*(2*nxyz[2]+1) ), 2 )
+
+    xlims = (-4*√3, 4*√3)
+    ylims = (-5, 5)
+
+    xlims = (-Inf, Inf)
+    ylims = (-Inf, Inf)
+
+
+    luc = size(bcc_unit_cell)[1]
+    n = 0
+    for j in -nxyz[1]:nxyz[1]
+        for k in -nxyz[2]:nxyz[2]
+            for i in 1:size(bcc_unit_cell)[1]
+
+                pos = ( bcc_unit_cell[i,:] + plat[1,:]*j + plat[2,:]*k ) * alat
+
+                if xlims[1] < pos[1]
+                    if xlims[2] > pos[1]
+                        if ylims[1] < pos[2]
+                            if ylims[2] > pos[2]
+                                n += 1
+                                lattice[n,:] .=  pos
+                                println("$n:  position = $bcc_unit_cell[i,:] -> ", pos/alat)
+                            end
+                        end
+                    end
+                end
+
+
+            end
+        end
+    end
+
+    # centre_vector = 0.5*( plat[1,:]*(Int64(round(nxyz[1]/2))-1) + plat[2,:]*(Int64(round(nxyz[2]/2))-1) )
+    # Make everything centred on the initial easy core position
+
+    Ei_core_position = [ 1/6.* √(3) * alat, 1/6.*alat ]
+
+    return lattice .- Ei_core_position'
+end
+
+function plot_trap_mappings()
+    positions = obtain_trap_mappings()
+
+    abcc = 2.87 # * 1.88971616463207
+    alat = √2 * abcc
+    lengths = [ √(3) * alat, alat, q  * alat]
+
+    pyplot( xlims = (-4*√3 + 0.5, 4*√3 - 0.5),
+            ylims = (-4*√3 + 0.2, 4*√3 - 0.8),
+            size=(600,500),
+            xticks=nothing,
+            yticks=nothing
+            )
+
+    fnt = Plots.font( "Helvetica", 30 )
+    default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
+
+    colors = palette(:tab10)
+    ls = [:solid, :dash, :dot, :dashdot]
+
+
+    lattice = create_lattice()
+
+    scatter(lattice[:,1],lattice[:,2],
+            markershape = :circle,
+            markersize  = 20,
+            markeralpha = 0.5,
+            markercolor = :grey,
+            # markerstrokewidth = 2,
+            # markerstrokecolor = :black,
+            markerstrokestyle = :dot,
+            xlims = (-4*√3, 4*√3),
+            ylims = ( -(4 + 1/3)*√3, (4 + 3/3.)*√3),
+            ticks=nothing, axis=nothing
+            )
+
+    Ei_core_position = zeros(2)
+    H_core_position = [ 1/6.*lengths[1], 1/6.*lengths[2] ]
+    Ef_core_position = [ 2/6.*lengths[1], 0.]
+
+    scatter!([Ei_core_position[1], Ef_core_position[1]], [Ei_core_position[2], Ef_core_position[2]],
+             markershape = :utriangle,
+             markercolor = :black,
+             markersize  = 10,
+             markeralpha = 0.9)
+
+    scatter!([H_core_position[1]], [H_core_position[2]],
+             markershape = :dtriangle,
+             markercolor = :black,
+             markersize  = 10,
+             markeralpha = 0.9)
+
+
+    xi = positions[1,:]
+    yi = positions[2,:]
+    xf = positions[3,:]
+    yf = positions[4,:]
+
+    dx = xf-xi
+    dy = yf-yi
+
+    quiver!(xi,yi, quiver=(dx,dy), leg=false)
 
 end
