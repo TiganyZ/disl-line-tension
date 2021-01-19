@@ -538,7 +538,7 @@ function mask_duplicate_rows(array)
             if j != i
                 if !( [j,i] in checked)
                     pos2 = array[j,:]
-                    if norm( pos1 - pos2 ) < 1e-2
+                    if norm( pos1 - pos2 ) < 1e-1
                         # Remove this position
                         mask[i,:] .= [ false, false ]
                     end
