@@ -74,6 +74,82 @@ function Base.convert(L::SiteLabel, D::Dict{SiteLabel, Array{Float64,1}})
 end
 
 
+
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Defining site positions for cores          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+function create_lattice()
+
+    abcc = 2.87 # * 1.88971616463207
+    alat = √2 * abcc
+
+    # plat = reshape([17.32050807568877, 0.0, 0.0 ,0.0 ,16.0 ,0.0 ,0.0 ,0.0, 0.6123724356957945] * alat, (3,3) )
+
+    # For radial configuration
+    q = √(3./8.) # This should work for bcc...
+
+    lengths = [ √(3)  1.]
+
+    plat = [[√(3)  0];
+            [0.    1] ]
+
+    bcc_unit_cell = [[  0.0   0.   ];
+                     [  1/3   0.   ];
+                     [  2/3.  0.   ];
+                     [  0.5   0.5  ];
+                     [  5/6.  0.5  ];
+                     [  1/6.  0.5  ]] .* lengths
+
+
+    # Build lattice of the unit cell to plot
+
+    nxyz = (2, 2)
+
+
+    lattice = zeros( size(bcc_unit_cell)[1]*( (2*nxyz[1]+1)*(2*nxyz[2]+1) ), 2 )
+
+    xlims = (-4*√3, 4*√3)
+    ylims = (-5, 5)
+
+    xlims = (-Inf, Inf)
+    ylims = (-Inf, Inf)
+
+
+    luc = size(bcc_unit_cell)[1]
+    n = 0
+    for j in -nxyz[1]:nxyz[1]
+        for k in -nxyz[2]:nxyz[2]
+            for i in 1:size(bcc_unit_cell)[1]
+
+                pos = ( bcc_unit_cell[i,:] + plat[1,:]*j + plat[2,:]*k ) * alat
+
+                if xlims[1] < pos[1]
+                    if xlims[2] > pos[1]
+                        if ylims[1] < pos[2]
+                            if ylims[2] > pos[2]
+                                n += 1
+                                lattice[n,:] .=  pos
+                                println("$n:  position = $bcc_unit_cell[i,:] -> ", pos/alat)
+                            end
+                        end
+                    end
+                end
+
+
+            end
+        end
+    end
+
+    # centre_vector = 0.5*( plat[1,:]*(Int64(round(nxyz[1]/2))-1) + plat[2,:]*(Int64(round(nxyz[2]/2))-1) )
+    # Make everything centred on the initial easy core position
+
+    Ei_core_position = [ 1/6.* √(3) * alat, 1/6.*alat ]
+
+    return lattice .- Ei_core_position'
+end
+
+
 function get_octahedral_position_dict(oct_sites, core)
     abcc = 2.87 # * 1.88971616463207
     alat = √2 * abcc
@@ -100,14 +176,6 @@ function get_octahedral_position_dict(oct_sites, core)
 
     site_pos_dict = Dict{SiteLabel, Array{Float64,1}}( labels[i] => oct_sites[i,:] + core_position for i in 1:length(labels))
     return site_pos_dict
-end
-
-function create_trap_labels_to_positions_dict()
-    Ei_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ei")
-    Ef_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ef")
-    H_dict  = get_octahedral_position_dict(get_all_sites_for_core("hard"), "H")
-
-    return merge(Ei_dict, Ef_dict, H_dict)
 end
 
 function get_octahedral_positions(core_type)
@@ -152,20 +220,6 @@ function get_octahedral_positions(core_type)
 end
 
 
-function rotation_matrix(angle)
-    rotation = [[cos(angle) -sin(angle)];
-                [sin(angle)  cos(angle)] ]
-    return rotation
-end
-
-
-function rotate_about_centre(rotation, centre, position)
-    println("\n Rotating about $centre, position = $position")
-    final_pos = centre + rotation * ( position - centre )
-    println("  >                final position = $final_pos")
-    return centre + rotation * ( position - centre )
-end
-
 
 function get_all_oct_sites(oct_sites, centre)
     N = size(oct_sites)[1]
@@ -187,6 +241,50 @@ function get_all_oct_sites(oct_sites, centre)
 
     return sites
 end
+
+function get_all_sites_for_core(core_type)
+    oct_sites_initial, core_position, relative_core_position = get_octahedral_positions(core_type)
+
+    ###---   Add also a REFLECTION as well as a rotation
+    oct_sites  = get_all_oct_sites(oct_sites_initial, [0,0.])
+
+    # reflect this oct,  -0.5*[√(2/3)*2.87 0.0]
+    reflected_oct = zeros(size(oct_sites))
+    reflected_oct = reflect_data_about_line!(1, oct_sites, reflected_oct, [0., 1.] )
+
+    oct_sites  = vcat( oct_sites, reflected_oct)
+    return oct_sites
+end
+
+
+function create_trap_labels_to_positions_dict()
+    Ei_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ei")
+    Ef_dict = get_octahedral_position_dict(get_all_sites_for_core("easy"), "Ef")
+    H_dict  = get_octahedral_position_dict(get_all_sites_for_core("hard"), "H")
+
+    return merge(Ei_dict, Ef_dict, H_dict)
+end
+
+
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Transformations to get site positions          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+
+function rotation_matrix(angle)
+    rotation = [[cos(angle) -sin(angle)];
+                [sin(angle)  cos(angle)] ]
+    return rotation
+end
+
+
+function rotate_about_centre(rotation, centre, position)
+    println("\n Rotating about $centre, position = $position")
+    final_pos = centre + rotation * ( position - centre )
+    println("  >                final position = $final_pos")
+    return centre + rotation * ( position - centre )
+end
+
 
 function reflect_data_about_line!(index::Int64, data::Array{Float64,2}, all_data::Array{Float64,2}, line::Array{Float64,1}, translation = [0.,0.]; no_idx = [])
     trans = translation
@@ -213,20 +311,10 @@ function reflect_2D( v::Array{Float64, 1}, l::Array{Float64, 1} )
 
 end
 
-function get_all_sites_for_core(core_type)
-    oct_sites_initial, core_position, relative_core_position = get_octahedral_positions(core_type)
 
-    ###---   Add also a REFLECTION as well as a rotation
-    oct_sites  = get_all_oct_sites(oct_sites_initial, [0,0.])
-
-    # reflect this oct,  -0.5*[√(2/3)*2.87 0.0]
-    reflected_oct = zeros(size(oct_sites))
-    reflected_oct = reflect_data_about_line!(1, oct_sites, reflected_oct, [0., 1.] )
-
-    oct_sites  = vcat( oct_sites, reflected_oct)
-    return oct_sites
-end
-
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Definition of the trap site paths          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
 
 function trap_site_paths()
     """ These are the paths that I have chosen, not Ivo.
@@ -478,17 +566,18 @@ function trap_site_paths()
 end
 
 
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Utility functions for manipulating sites          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+function convert_site_site_dict(paths, label_to_position)
+    return hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in paths]...)
+end
+
 function obtain_trap_mappings()
     label_to_position = create_trap_labels_to_positions_dict()
-    Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths = trap_site_paths()
-
-    # positions is a  4 x N_trap_sites size array, where each column is an xi,yi,xf,yf array
-    Ei_H_positions = hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in Ei_H_paths]...)
-    H_Ei_positions = hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in H_Ei_paths]...)
-
-    H_Ef_positions = hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in H_Ef_paths]...)
-    Ef_H_positions = hcat( [ vcat(convert(key, label_to_position), convert(value, label_to_position)) for (key,value) in Ef_H_paths]...)
-    return Ei_H_positions, H_Ei_positions, H_Ef_positions, Ef_H_positions
+    paths = trap_site_paths()
+    return map( x -> convert_site_site_dict(x, label_to_position), paths)
 end
 
 
@@ -515,13 +604,6 @@ function mask_duplicate_rows(array)
     return mask
 end
 
-function nearest_neighbours_to_pos( pos, lattice )
-    # Broadcast to get subtraction of all points from all others
-    N, M = size(lattice)
-    return sortperm( reshape( sum( ( lattice .- pos ).^2 , 2 ), (N,) ) )
-end
-
-
 function remove_duplicate_rows(array)
     mask = mask_duplicate_rows(array)
     N_mask = sum(mask[:,1])
@@ -530,78 +612,72 @@ function remove_duplicate_rows(array)
     return new_data
 end
 
-function create_lattice()
+function mask_duplicate_columns(array)
+    N = size(array, 2)
+    mask = ones(Bool, size(array) )
+    checked = []
 
-    abcc = 2.87 # * 1.88971616463207
-    alat = √2 * abcc
-
-    # plat = reshape([17.32050807568877, 0.0, 0.0 ,0.0 ,16.0 ,0.0 ,0.0 ,0.0, 0.6123724356957945] * alat, (3,3) )
-
-    # For radial configuration
-    q = √(3./8.) # This should work for bcc...
-
-    lengths = [ √(3)  1.]
-
-    plat = [[√(3)  0];
-            [0.    1] ]
-
-    bcc_unit_cell = [[  0.0   0.   ];
-                     [  1/3   0.   ];
-                     [  2/3.  0.   ];
-                     [  0.5   0.5  ];
-                     [  5/6.  0.5  ];
-                     [  1/6.  0.5  ]] .* lengths
-
-
-    # Build lattice of the unit cell to plot
-
-    nxyz = (2, 2)
-
-
-    lattice = zeros( size(bcc_unit_cell)[1]*( (2*nxyz[1]+1)*(2*nxyz[2]+1) ), 2 )
-
-    xlims = (-4*√3, 4*√3)
-    ylims = (-5, 5)
-
-    xlims = (-Inf, Inf)
-    ylims = (-Inf, Inf)
-
-
-    luc = size(bcc_unit_cell)[1]
-    n = 0
-    for j in -nxyz[1]:nxyz[1]
-        for k in -nxyz[2]:nxyz[2]
-            for i in 1:size(bcc_unit_cell)[1]
-
-                pos = ( bcc_unit_cell[i,:] + plat[1,:]*j + plat[2,:]*k ) * alat
-
-                if xlims[1] < pos[1]
-                    if xlims[2] > pos[1]
-                        if ylims[1] < pos[2]
-                            if ylims[2] > pos[2]
-                                n += 1
-                                lattice[n,:] .=  pos
-                                println("$n:  position = $bcc_unit_cell[i,:] -> ", pos/alat)
-                            end
-                        end
+    for i in 1:N
+        pos1 = array[:,i]
+        for j in 1:N
+            if j != i
+                if !( [j,i] in checked)
+                    pos2 = array[:,j]
+                    if norm( pos1 - pos2 ) < 1e-1
+                        # Remove this position
+                        mask[:,i] .= [ false, false, false, false ]
                     end
+                    push!( checked, [i,j])
                 end
-
-
             end
         end
     end
+    return mask
+end
 
-    # centre_vector = 0.5*( plat[1,:]*(Int64(round(nxyz[1]/2))-1) + plat[2,:]*(Int64(round(nxyz[2]/2))-1) )
-    # Make everything centred on the initial easy core position
+function remove_duplicate_columns(array)
+    mask = mask_duplicate_columns(array)
+    N_mask = sum(mask[1,:])
+    new_data = zeros(Float64, (Int64(N_mask), 1) )
+    new_data[:,:] .= reshape( array[mask], size(new_data) )
+    return new_data
+end
 
-    Ei_core_position = [ 1/6.* √(3) * alat, 1/6.*alat ]
 
-    return lattice .- Ei_core_position
-end'
+
+function find_self_mapped_sites(trap_site_paths)
+    return filter((k,v) -> k==v, trap_site_paths)
+end
+
+function combine_mapped_sites(trap_site_paths)
+    # Want the Ei state to have the self-mapped Ef states and vice versa
+    # Want the H state ot have all self-mapped Ei/Ef sites
+    # trap_site_paths is a tuple of the dictionaries defined above
+    # > Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
+
+    self_mapped_Ei_H, self_mapped_H_Ei, self_mapped_Ef_H, self_mapped_H_Ef = map(find_self_mapped_sites, trap_site_paths)
+
+    # Want the Ei state to have the self-mapped Ef states
+    Ei_H_paths = merge( trap_site_paths[1], self_mapped_H_Ef )
+    Ef_H_paths = merge( trap_site_paths[3], self_mapped_Ei_H )
+
+    H_Ei_paths = merge( trap_site_paths[2], self_mapped_Ei_H, self_mapped_H_Ef )
+    H_Ef_paths = merge( trap_site_paths[4], self_mapped_Ei_H, self_mapped_H_Ef )
+
+    return Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
+end
+
 
 function plot_trap_mappings()
     Ei_H_positions, H_Ei_positions, H_Ef_positions, Ef_H_positions = obtain_trap_mappings()
+
+    label_to_position = create_trap_labels_to_positions_dict()
+    trap_paths = combine_mapped_sites(trap_site_paths())
+
+    Ei_H_positions, H_Ei_positions, H_Ef_positions, Ef_H_positions =
+        map( x -> convert_site_site_dict(x, label_to_position),  trap_paths)
+    #    ( convert_site_site_dict(t, label_to_position) for t in trap_paths)
+    #        map( x -> convert_site_site_dict(x, label_to_position),  trap_paths)
 
     abcc = 2.87 # * 1.88971616463207
     alat = √2 * abcc
@@ -610,9 +686,9 @@ function plot_trap_mappings()
     Ef_core_position = [ 2/6.*lengths[1], 0.]
     H_core_position = [ 1/6.*lengths[1], 1/6.*lengths[2] ]
 
-    Ei_positions = remove_duplicate_rows(get_all_sites_for_core("easy"))
-    Ef_positions = remove_duplicate_rows(get_all_sites_for_core("easy")  .+ Ef_core_position')
-    H_positions  = remove_duplicate_rows(get_all_sites_for_core("hard") .+ H_core_position')
+    # Ei_positions = remove_duplicate_rows(get_all_sites_for_core("easy"))
+    # Ef_positions = remove_duplicate_rows(get_all_sites_for_core("easy")  .+ Ef_core_position')
+    # H_positions  = remove_duplicate_rows(get_all_sites_for_core("hard") .+ H_core_position')
 
 
     pyplot( xlims = (-4*√3 + 0.5, 4*√3 - 0.5),
@@ -665,10 +741,10 @@ function plot_trap_mappings()
     xf = H_Ef_positions[3,:]
     yf = H_Ef_positions[4,:]
 
-    xi = Ef_H_positions[1,:]
-    yi = Ef_H_positions[2,:]
-    xf = Ef_H_positions[3,:]
-    yf = Ef_H_positions[4,:]
+    # xi = Ef_H_positions[1,:]
+    # yi = Ef_H_positions[2,:]
+    # xf = Ef_H_positions[3,:]
+    # yf = Ef_H_positions[4,:]
 
     scatter!(xi, yi,
                  markershape = :circle,
@@ -679,13 +755,13 @@ function plot_trap_mappings()
              # markerstrokecolor = :black
                  )
 
-    # scatter!(xf, yf,
-    #              markershape = :circle,
-    #              markersize  = 10,
-    #              markeralpha = 0.5,
-    #          markercolor = :red,
-    #          markerstrokewidth = 2
-    #              )
+    scatter!(xf, yf,
+                 markershape = :circle,
+                 markersize  = 10,
+                 markeralpha = 0.5,
+             markercolor = :red,
+             markerstrokewidth = 2
+                 )
 
     scatter!(Ei_positions[:,1], Ei_positions[:,2],
                  markershape = :circle,
