@@ -378,141 +378,7 @@ function trap_site_paths()
                                             SiteLabel("H4", 3) => SiteLabel("Ei7", 4),
                                             SiteLabel("H5", 3) => SiteLabel("Ei6", 4),
                                             SiteLabel("H6", 3) => SiteLabel("Ei4", 4),
-                                            SiteLabel("H7", 3) => SiteLabel("H7", 3)
-
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei1",  1), # Ei -> H sector 1
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei2",  1),
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei3",  1),
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei4",  1),
-                                             # SiteLabel("H2", 3)   => SiteLabel("Ei5",  1),
-                                             # SiteLabel("H2", 6)   => SiteLabel("Ei6",  1),
-                                             # SiteLabel("H2", 6)   => SiteLabel("Ei7",  1),
-                                             # SiteLabel("H2", 3)   => SiteLabel("Ei8",  1),
-                                             # SiteLabel("H2", 6)   => SiteLabel("Ei9",  1),
-                                             # SiteLabel("H6", 6)   => SiteLabel("Ei10", 1),
-
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei1",  2), # Ei -> H sector 2
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei2",  2),
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei3",  2),
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei4",  2),
-                                             # SiteLabel("H7", 1)   => SiteLabel("Ei5",  2),
-                                             # SiteLabel("H3", 5)   => SiteLabel("Ei6",  2),
-                                             # SiteLabel("Ei7", 2)  => SiteLabel("Ei7",  2),
-                                             # SiteLabel("Ei8", 2)  => SiteLabel("Ei8",  2),
-                                             # SiteLabel("H4", 5)   => SiteLabel("Ei9",  2),
-                                             # SiteLabel("Ei10", 2) => SiteLabel("Ei10", 2), #SiteLabel("Ei10", 2) => SiteLabel("H5", 5)       ,
-
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei1",  3), # Ei -> H sector 3
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei2",  3),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei3",  3),
-                                             # SiteLabel("H6", 1)   => SiteLabel("Ei4",  3),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei5",  3),
-                                             # SiteLabel("H5", 4)   => SiteLabel("Ei6",  3),
-                                             # SiteLabel("H4", 4)   => SiteLabel("Ei7",  3),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei8",  3),
-                                             # SiteLabel("H5", 1)   => SiteLabel("Ei9",  3),
-                                             # SiteLabel("Ei10", 3) => SiteLabel("Ei10", 3), #SiteLabel("Ei10", 3) => SiteLabel("H5", 1)       ,
-
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei1",  4), # Ei -> H sector 4
-                                             # SiteLabel("H2", 5)   => SiteLabel("Ei2",  4),
-                                             # SiteLabel("H2", 3)   => SiteLabel("Ei3",  4),
-                                             # SiteLabel("H6", 3)   => SiteLabel("Ei4",  4),
-                                             # SiteLabel("H2", 3)   => SiteLabel("Ei5",  4),
-                                             # SiteLabel("H5", 3)   => SiteLabel("Ei6",  4),
-                                             # SiteLabel("H4", 3)   => SiteLabel("Ei7",  4),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei8",  4),
-                                             # SiteLabel("H5", 5)   => SiteLabel("Ei9",  4),
-                                             # SiteLabel("Ei10", 4) => SiteLabel("Ei10", 4),
-
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei1",  5), # Ei -> H sector 5
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei2",  5),
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei3",  5),
-                                             # SiteLabel("H1", 6)   => SiteLabel("Ei4",  5),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei5",  5),
-                                             # SiteLabel("H2", 2)   => SiteLabel("Ei6",  5),
-                                             # SiteLabel("H2", 2)   => SiteLabel("Ei7",  5),
-                                             # SiteLabel("H2", 4)   => SiteLabel("Ei8",  5),
-                                             # SiteLabel("H2", 2)   => SiteLabel("Ei9",  5),
-                                             # SiteLabel("H6", 2)   => SiteLabel("Ei10", 5),
-
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei1",  6), # Ei -> H sector 5
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei2",  6),
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei3",  6),
-                                             # SiteLabel("H2", 1)   => SiteLabel("Ei4",  6),
-                                             # SiteLabel("H7", 1)   => SiteLabel("Ei5",  6),
-                                             # SiteLabel("H3", 1)   => SiteLabel("Ei6",  6),
-                                             # SiteLabel("Ei7",  6) => SiteLabel("Ei7",  6),
-                                             # SiteLabel("Ei8",  6) => SiteLabel("Ei8",  6),
-                                             # SiteLabel("H4", 1)   => SiteLabel("Ei9",  6),
-                                             # SiteLabel("Ei10", 6) => SiteLabel("Ei10", 6),
-
-                                             # SiteLabel("Ei1",  1) => SiteLabel("H1", 6), # Ei -> H sector 1
-                                             # SiteLabel("Ei2",  1) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei3",  1) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei4",  1) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei5",  1) => SiteLabel("H2", 3),
-                                             # SiteLabel("Ei6",  1) => SiteLabel("H2", 6),
-                                             # SiteLabel("Ei7",  1) => SiteLabel("H2", 6),
-                                             # SiteLabel("Ei8",  1) => SiteLabel("H2", 3),
-                                             # SiteLabel("Ei9",  1) => SiteLabel("H2", 6),
-                                             # SiteLabel("Ei10", 1) => SiteLabel("H6", 6),
-
-                                             # SiteLabel("Ei1",  2) => SiteLabel("H2", 5), # Ei -> H sector 2
-                                             # SiteLabel("Ei2",  2) => SiteLabel("H2", 5),
-                                             # SiteLabel("Ei3",  2) => SiteLabel("H2", 5),
-                                             # SiteLabel("Ei4",  2) => SiteLabel("H2", 5),
-                                             # SiteLabel("Ei5",  2) => SiteLabel("H7", 1),
-                                             # SiteLabel("Ei6",  2) => SiteLabel("H3", 5),
-                                             # SiteLabel("Ei7",  2) => SiteLabel("Ei7", 2),
-                                             # SiteLabel("Ei8",  2) => SiteLabel("Ei8", 2),
-                                             # SiteLabel("Ei9",  2) => SiteLabel("H4", 5),
-                                             # SiteLabel("Ei10", 2) => SiteLabel("Ei10", 2), #SiteLabel("Ei10", 2) => SiteLabel("H5", 5),
-
-                                             # SiteLabel("Ei1",  3) => SiteLabel("H2", 1), # Ei -> H sector 3
-                                             # SiteLabel("Ei2",  3) => SiteLabel("H2", 1),
-                                             # SiteLabel("Ei3",  3) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei4",  3) => SiteLabel("H6", 1),
-                                             # SiteLabel("Ei5",  3) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei6",  3) => SiteLabel("H5", 4),
-                                             # SiteLabel("Ei7",  3) => SiteLabel("H4", 4),
-                                             # SiteLabel("Ei8",  3) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei9",  3) => SiteLabel("H5", 1),
-                                             # SiteLabel("Ei10", 3) => SiteLabel("Ei10", 3), #SiteLabel("Ei10", 3) => SiteLabel("H5", 1),
-
-                                             # SiteLabel("Ei1",  4) => SiteLabel("H2", 5), # Ei -> H sector 4
-                                             # SiteLabel("Ei2",  4) => SiteLabel("H2", 5),
-                                             # SiteLabel("Ei3",  4) => SiteLabel("H2", 3),
-                                             # SiteLabel("Ei4",  4) => SiteLabel("H6", 3),
-                                             # SiteLabel("Ei5",  4) => SiteLabel("H2", 3),
-                                             # SiteLabel("Ei6",  4) => SiteLabel("H5", 3),
-                                             # SiteLabel("Ei7",  4) => SiteLabel("H4", 3),
-                                             # SiteLabel("Ei8",  4) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei9",  4) => SiteLabel("H5", 5),
-                                             # SiteLabel("Ei10", 4) => SiteLabel("Ei10", 4),
-
-                                             # SiteLabel("Ei1",  5) => SiteLabel("H1", 6), # Ei -> H sector 5
-                                             # SiteLabel("Ei2",  5) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei3",  5) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei4",  5) => SiteLabel("H1", 6),
-                                             # SiteLabel("Ei5",  5) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei6",  5) => SiteLabel("H2", 2),
-                                             # SiteLabel("Ei7",  5) => SiteLabel("H2", 2),
-                                             # SiteLabel("Ei8",  5) => SiteLabel("H2", 4),
-                                             # SiteLabel("Ei9",  5) => SiteLabel("H2", 2),
-                                             # SiteLabel("Ei10", 5) => SiteLabel("H6", 2),
-
-                                             # SiteLabel("Ei1",  6) => SiteLabel("H2", 1), # Ei -> H sector 5
-                                             # SiteLabel("Ei2",  6) => SiteLabel("H2", 1),
-                                             # SiteLabel("Ei3",  6) => SiteLabel("H2", 1),
-                                             # SiteLabel("Ei4",  6) => SiteLabel("H2", 1),
-                                             # SiteLabel("Ei5",  6) => SiteLabel("H7", 1),
-                                             # SiteLabel("Ei6",  6) => SiteLabel("H3", 1),
-                                             # SiteLabel("Ei7",  6) => SiteLabel("Ei7",  6),
-                                             # SiteLabel("Ei8",  6) => SiteLabel("Ei8",  6),
-                                             # SiteLabel("Ei9",  6) => SiteLabel("H4", 1),
-                                             # SiteLabel("Ei10", 6) => SiteLabel("Ei10", 6)
-                                             )
-    # SiteLabel("Ei10", 6) => SiteLabel("H4", 2) )
+                                             SiteLabel("H7", 3) => SiteLabel("H7", 3))
 
     # >> Might be worth mapping some of the E7/8/9/10 sites (on the left, which are outside the range of the sampled hard core sites) to zero.
     # >> One can argue by not doing this we are simulating how carbon moves *with* the dislocation.
@@ -661,6 +527,44 @@ function obtain_trap_mappings()
 end
 
 
+function mask_duplicate_rows(array)
+    N = size(array, 1)
+    mask = ones(Bool, size(array) )
+    checked = []
+
+    for i in 1:N
+        pos1 = array[i,:]
+        for j in 1:N
+            if j != i
+                if !( [j,i] in checked)
+                    pos2 = array[j,:]
+                    if norm( pos1 - pos2 ) < 1e-2
+                        # Remove this position
+                        mask[i,:] .= [ false, false ]
+                    end
+                    push!( checked, [i,j])
+                end
+            end
+        end
+    end
+    return mask
+end
+
+function nearest_neighbours_to_pos( pos, lattice )
+    # Broadcast to get subtraction of all points from all others
+    N, M = size(lattice)
+    return sortperm( reshape( sum( ( lattice .- pos ).^2 , 2 ), (N,) ) )
+end
+
+
+function remove_duplicate_rows(array)
+    mask = mask_duplicate_rows(array)
+    N_mask = sum(mask[:,1])
+    new_data = zeros(Float64, (Int64(N_mask), 2) )
+    new_data[:,:] .= reshape( array[mask], size(new_data) )
+    return new_data
+end
+
 function create_lattice()
 
     abcc = 2.87 # * 1.88971616463207
@@ -741,9 +645,9 @@ function plot_trap_mappings()
     Ef_core_position = [ 2/6.*lengths[1], 0.]
     H_core_position = [ 1/6.*lengths[1], 1/6.*lengths[2] ]
 
-    Ei_positions = get_all_sites_for_core("easy")
-    Ef_positions = get_all_sites_for_core("easy")  .+ Ef_core_position'
-    H_positions = get_all_sites_for_core("hard") .+ H_core_position'
+    Ei_positions = remove_duplicate_rows(get_all_sites_for_core("easy"))
+    Ef_positions = remove_duplicate_rows(get_all_sites_for_core("easy")  .+ Ef_core_position')
+    H_positions  = remove_duplicate_rows(get_all_sites_for_core("hard") .+ H_core_position')
 
 
     pyplot( xlims = (-4*√3 + 0.5, 4*√3 - 0.5),
@@ -816,7 +720,7 @@ function plot_trap_mappings()
                  markershape = :circle,
                  markersize  = 10,
                  markeralpha = 0.5,
-             markercolor = :red,
+             markercolor = :green,
              markerstrokewidth = 2
              )
 
@@ -824,7 +728,7 @@ function plot_trap_mappings()
                  markershape = :circle,
                  markersize  = 10,
                  markeralpha = 0.5,
-             markercolor = :blue,
+             markercolor = :red,
              markerstrokewidth = 2
                  )
 
@@ -851,13 +755,17 @@ function plot_trap_mappings()
              markershape = :utriangle,
              markercolor = :black,
              markersize  = 10,
-             markeralpha = 0.9)
+             markeralpha = 0.9,
+             markerstrokewidth = 2,
+             markerstrokecolor = :black)
 
     scatter!([H_core_position[1]], [H_core_position[2]],
              markershape = :dtriangle,
-             markercolor = :black,
+             markercolor = :grey,
              markersize  = 10,
-             markeralpha = 0.9)
+             markeralpha = 0.9,
+             markerstrokewidth = 2,
+             markerstrokecolor = :black)
 
 
 
@@ -928,13 +836,17 @@ function plot_trap_mappings()
              markershape = :utriangle,
              markercolor = :black,
              markersize  = 10,
-             markeralpha = 0.9)
+             markeralpha = 0.9,
+             markerstrokewidth = 2,
+             markerstrokecolor = :black)
 
     scatter!([H_core_position[1]], [H_core_position[2]],
              markershape = :dtriangle,
-             markercolor = :black,
+             markercolor = :grey,
              markersize  = 10,
-             markeralpha = 0.9)
+             markeralpha = 0.9,
+             markerstrokewidth = 2,
+             markerstrokecolor = :black)
 
 
     for i in 1:length(labels)
