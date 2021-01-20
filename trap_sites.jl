@@ -339,12 +339,38 @@ function trap_site_paths()
     >> Each of the actual cores, Hard and Easy have unambiguous trap sites.
     >> For each of the sites we map to the sector also
 
-    Quadrants are the number next to the
+    > There are some self-mapped sites which can be left to decay to zero
+    > But maybe we don't do this for consistency...
+    > There is a problem with some residual carbon on the other side of the dislocation as it moves but it should only give a minor effect to the enthalpies
+    > I think there could be a larger error in ignoring sites.
+    > What evidence is there to support my claim compared to Ivo's
+    >> Certainly the E6 site should not decay to zero in some circumstances given the large initial binding energy.
+
+    > Can isolate some atoms to genuinely decay to zero as we move dislocation to hard core position or vice versa
 """
     # >> Easy << >> Hard <<
     #   4  1       3  6
     # 2      5   5      2
     #   6  3       1  4
+
+
+    Ei_isolated = [SiteLabel("Ei10", 2), SiteLabel("Ei10", 3),
+                   SiteLabel("Ei7" , 2), SiteLabel("Ei8",  2),  SiteLabel("Ei7", 6), SiteLabel("Ei8", 6)]
+
+    Ei_H_isolated  = [SiteLabel("H7", 3), SiteLabel("H3", 3), SiteLabel("H3", 6),
+                      SiteLabel("H3", 6), SiteLabel("H4", 6), SiteLabel("H5", 6),
+                      SiteLabel("H3", 2), SiteLabel("H4", 2), SiteLabel("H5", 2),
+                      SiteLabel("H7", 4), SiteLabel("H3", 4)
+                      ]
+
+    Ef_isolated = [SiteLabel("Ef10", 5), SiteLabel("Ef10", 6),
+                   SiteLabel("Ef7" , 5), SiteLabel("Ef8",  5),  SiteLabel("Ef7", 3), SiteLabel("Ef8", 3)]
+
+    Ef_H_isolated  = [SiteLabel("H7", 6), SiteLabel("H3", 6), SiteLabel("H3", 3),
+                      SiteLabel("H3", 3), SiteLabel("H4", 3), SiteLabel("H5", 3),
+                      SiteLabel("H3", 5), SiteLabel("H4", 5), SiteLabel("H5", 5),
+                      SiteLabel("H7", 1), SiteLabel("H3", 1)
+                      ]
 
     Ei_H_paths = Dict{SiteLabel, SiteLabel}( SiteLabel("Ei1",  1) => SiteLabel("H1", 6), # Ei -> H sector 1
                                              SiteLabel("Ei2",  1) => SiteLabel("H1", 6),
@@ -403,6 +429,8 @@ function trap_site_paths()
                                              SiteLabel("Ei8",  6) => SiteLabel("Ei8",  6),
                                              SiteLabel("Ei9",  6) => SiteLabel("H4", 1))
 
+    rev_Ei_H_paths = Dict{SiteLabel, SiteLabel}( v => k for (k,v) in Ei_H_paths)
+
 
     # Symmetric paths
     # > Note: The sectors are reflected when going back this way
@@ -451,6 +479,7 @@ function trap_site_paths()
                                             SiteLabel("H6", 3) => SiteLabel("Ei4", 4),
                                             SiteLabel("H7", 3) => SiteLabel("H7", 3))
 
+    rev_H_Ei_paths = Dict{SiteLabel, SiteLabel}( v => k for (k,v) in H_Ei_paths)
     # >> Might be worth mapping some of the E7/8/9/10 sites (on the left, which are outside the range of the sampled hard core sites) to zero.
     # >> One can argue by not doing this we are simulating how carbon moves *with* the dislocation.
 
@@ -657,14 +686,16 @@ function combine_mapped_sites(trap_site_paths)
     # trap_site_paths is a tuple of the dictionaries defined above
     # > Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
 
-    self_mapped_Ei_H, self_mapped_H_Ei, self_mapped_Ef_H, self_mapped_H_Ef = map(find_self_mapped_sites, trap_site_paths)
+    self_mapped_Ei_H, self_mapped_H_Ei, self_mapped_H_Ef, self_mapped_Ef_H = map(find_self_mapped_sites, trap_site_paths)
 
     # Want the Ei state to have the self-mapped Ef states
-    Ei_H_paths = merge( trap_site_paths[1], self_mapped_H_Ef )
+    Ei_H_paths = merge( trap_site_paths[1], self_mapped_Ef_H )
     Ef_H_paths = merge( trap_site_paths[3], self_mapped_Ei_H )
 
-    H_Ei_paths = merge( trap_site_paths[2], self_mapped_Ei_H, self_mapped_H_Ef )
-    H_Ef_paths = merge( trap_site_paths[4], self_mapped_Ei_H, self_mapped_H_Ef )
+    H_Ei_paths = merge( trap_site_paths[2], self_mapped_Ei_H, self_mapped_Ef_H )
+    H_Ef_paths = merge( trap_site_paths[4], self_mapped_Ei_H, self_mapped_Ef_H )
+
+
 
     return Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
 end
@@ -748,22 +779,22 @@ function plot_trap_mappings()
     xf = Ef_H_positions[3,:]
     yf = Ef_H_positions[4,:]
 
-    scatter!(xi, yi,
-                 markershape = :circle,
-                 markersize  = 10,
-                 markeralpha = 0.5,
-             markercolor = :blue,
-             markerstrokewidth = 2,leg=false
-             # markerstrokecolor = :black
-                 )
+    # scatter!(xi, yi,
+    #              markershape = :circle,
+    #              markersize  = 10,
+    #              markeralpha = 0.5,
+    #          markercolor = :blue,
+    #          markerstrokewidth = 2,leg=false
+    #          # markerstrokecolor = :black
+    #              )
 
-    scatter!(xf, yf,
-                 markershape = :circle,
-                 markersize  = 10,
-                 markeralpha = 0.5,
-             markercolor = :red,
-             markerstrokewidth = 2
-                 )
+    # scatter!(xf, yf,
+    #              markershape = :circle,
+    #              markersize  = 10,
+    #              markeralpha = 0.5,
+    #          markercolor = :red,
+    #          markerstrokewidth = 2
+    #              )
 
     scatter!(Ei_positions[:,1], Ei_positions[:,2],
                  markershape = :circle,
@@ -787,7 +818,7 @@ function plot_trap_mappings()
                  markersize  = 10,
                  markeralpha = 0.5,
              markercolor = :red,
-             markerstrokewidth = 2
+             markerstrokewidth = 2, leg=false
                  )
 
 
@@ -811,7 +842,7 @@ function plot_trap_mappings()
 
     scatter!([Ei_core_position[1], Ef_core_position[1]], [Ei_core_position[2], Ef_core_position[2]],
              markershape = :utriangle,
-             markercolor = :black,
+             markercolor = :yellow,
              markersize  = 10,
              markeralpha = 0.9,
              markerstrokewidth = 2,
@@ -819,7 +850,7 @@ function plot_trap_mappings()
 
     scatter!([H_core_position[1]], [H_core_position[2]],
              markershape = :dtriangle,
-             markercolor = :grey,
+             markercolor = :yellow,
              markersize  = 10,
              markeralpha = 0.9,
              markerstrokewidth = 2,
