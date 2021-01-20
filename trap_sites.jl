@@ -318,6 +318,52 @@ end
 # >>>>>>>>>>          Definition of the trap site paths          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
+function reflect_site_label(sitelabel)
+    if sitelabel.section <= 3
+        new_sitelabel = SiteLabel(sitelabel.site, sitelabel.section + 3)
+    else
+        new_sitelabel = SiteLabel(sitelabel.site, sitelabel.section - 3)
+    end
+    return new_sitelabel
+end
+
+function change_to_alternate_core(sitelabel)
+    if contains(sitelabel.site, "i")
+        new_site = replace(sitelabel.site, "i" => "f")
+    elseif contains(sitelabel.site, "f")
+        new_site = replace(sitelabel.site, "f" => "i")
+    else
+        new_site = sitelabel.site
+    end
+    return SiteLabel(new_site, sitelabel.section)
+end
+
+
+function change_mapping_to_other_core(sitelabel)
+    return reflect_site_label( change_to_alternate_core(sitelabel) )
+end
+
+function convert_site_site_dict_to_other_core(dict)
+    return Dict( change_mapping_to_other_core(k) => change_mapping_to_other_core(v) for (k,v) in dict  )
+end
+
+function isolated_trap_sites()
+    Ei_H_isolated = [SiteLabel("Ei10", 2), SiteLabel("Ei10", 3),
+                   SiteLabel("Ei7" , 2), SiteLabel("Ei8",  2),  SiteLabel("Ei7", 6), SiteLabel("Ei8", 6)]
+
+    H_Ei_isolated  = [SiteLabel("H7", 3), SiteLabel("H3", 3), SiteLabel("H3", 6),
+                      SiteLabel("H3", 6), SiteLabel("H4", 6), SiteLabel("H5", 6),
+                      SiteLabel("H3", 2), SiteLabel("H4", 2), SiteLabel("H5", 2),
+                      SiteLabel("H7", 4), SiteLabel("H3", 4)                      ]
+
+
+    Ef_H_isolated = map( change_mapping_to_other_core, Ei_H_isolated )
+
+    H_Ef_isolated = map( change_mapping_to_other_core, H_Ei_isolated )
+
+    return  Ei_H_isolated, H_Ei_isolated, H_Ef_isolated, Ef_H_isolated
+end
+
 function trap_site_paths()
     """ These are the paths that I have chosen, not Ivo.
 
@@ -352,25 +398,6 @@ function trap_site_paths()
     #   4  1       3  6
     # 2      5   5      2
     #   6  3       1  4
-
-
-    Ei_isolated = [SiteLabel("Ei10", 2), SiteLabel("Ei10", 3),
-                   SiteLabel("Ei7" , 2), SiteLabel("Ei8",  2),  SiteLabel("Ei7", 6), SiteLabel("Ei8", 6)]
-
-    Ei_H_isolated  = [SiteLabel("H7", 3), SiteLabel("H3", 3), SiteLabel("H3", 6),
-                      SiteLabel("H3", 6), SiteLabel("H4", 6), SiteLabel("H5", 6),
-                      SiteLabel("H3", 2), SiteLabel("H4", 2), SiteLabel("H5", 2),
-                      SiteLabel("H7", 4), SiteLabel("H3", 4)
-                      ]
-
-    Ef_isolated = [SiteLabel("Ef10", 5), SiteLabel("Ef10", 6),
-                   SiteLabel("Ef7" , 5), SiteLabel("Ef8",  5),  SiteLabel("Ef7", 3), SiteLabel("Ef8", 3)]
-
-    Ef_H_isolated  = [SiteLabel("H7", 6), SiteLabel("H3", 6), SiteLabel("H3", 3),
-                      SiteLabel("H3", 3), SiteLabel("H4", 3), SiteLabel("H5", 3),
-                      SiteLabel("H3", 5), SiteLabel("H4", 5), SiteLabel("H5", 5),
-                      SiteLabel("H7", 1), SiteLabel("H3", 1)
-                      ]
 
     Ei_H_paths = Dict{SiteLabel, SiteLabel}( SiteLabel("Ei1",  1) => SiteLabel("H1", 6), # Ei -> H sector 1
                                              SiteLabel("Ei2",  1) => SiteLabel("H1", 6),
@@ -429,9 +456,6 @@ function trap_site_paths()
                                              SiteLabel("Ei8",  6) => SiteLabel("Ei8",  6),
                                              SiteLabel("Ei9",  6) => SiteLabel("H4", 1))
 
-    rev_Ei_H_paths = Dict{SiteLabel, SiteLabel}( v => k for (k,v) in Ei_H_paths)
-
-
     # Symmetric paths
     # > Note: The sectors are reflected when going back this way
 
@@ -440,58 +464,8 @@ function trap_site_paths()
     # 2      5   5      2
     #   6  3       1  4
 
-
-    H_Ei_paths = Dict{SiteLabel, SiteLabel}(SiteLabel("H2", 4) => SiteLabel("Ei5", 5), # Ei1/Ei2 Lower
-                                            SiteLabel("H3", 4) => SiteLabel("H3", 4),
-                                            SiteLabel("H4", 4) => SiteLabel("Ei7", 3),
-                                            SiteLabel("H5", 4) => SiteLabel("Ei6", 3), # Ei1/Ei2 Left
-
-                                            SiteLabel("H2", 5) => SiteLabel("Ei2", 2),
-                                            SiteLabel("H3", 5) => SiteLabel("Ei6", 2),
-                                            SiteLabel("H4", 5) => SiteLabel("Ei9", 2),
-                                            SiteLabel("H5", 5) => SiteLabel("Ei9", 4),
-
-
-                                            SiteLabel("H2", 6) => SiteLabel("Ei6", 1),
-                                            SiteLabel("H3", 6) => SiteLabel("H3", 6), # Can really be mapped outside or to the same site and bulk binding
-                                            SiteLabel("H4", 6) => SiteLabel("H4", 6),
-                                            SiteLabel("H5", 6) => SiteLabel("H5", 6),
-
-                                            SiteLabel("H1", 1) => SiteLabel("Ei1", 1),
-                                            SiteLabel("H2", 1) => SiteLabel("Ei2", 6),
-                                            SiteLabel("H3", 1) => SiteLabel("Ei6", 6),
-                                            SiteLabel("H4", 1) => SiteLabel("Ei9", 6),
-                                            SiteLabel("H5", 1) => SiteLabel("Ei9", 3),
-                                            SiteLabel("H6", 1) => SiteLabel("Ei4", 3),
-                                            SiteLabel("H7", 1) => SiteLabel("Ei5", 6),
-
-                                            SiteLabel("H2", 2) => SiteLabel("Ei6", 5),
-                                            SiteLabel("H3", 2) => SiteLabel("H3", 2),
-                                            SiteLabel("H4", 2) => SiteLabel("H4", 2),
-                                            SiteLabel("H5", 2) => SiteLabel("H5", 2),
-                                            SiteLabel("H6", 2) => SiteLabel("Ei10", 5),
-                                            SiteLabel("H7", 2) => SiteLabel("H7", 2),
-
-                                            SiteLabel("H2", 3) => SiteLabel("Ei5", 4),
-                                            SiteLabel("H3", 3) => SiteLabel("H3", 3),
-                                            SiteLabel("H4", 3) => SiteLabel("Ei7", 4),
-                                            SiteLabel("H5", 3) => SiteLabel("Ei6", 4),
-                                            SiteLabel("H6", 3) => SiteLabel("Ei4", 4),
-                                            SiteLabel("H7", 3) => SiteLabel("H7", 3))
-
-    rev_H_Ei_paths = Dict{SiteLabel, SiteLabel}( v => k for (k,v) in H_Ei_paths)
     # >> Might be worth mapping some of the E7/8/9/10 sites (on the left, which are outside the range of the sampled hard core sites) to zero.
     # >> One can argue by not doing this we are simulating how carbon moves *with* the dislocation.
-
-
-    # >> Easy << >> Hard <<
-    #   4  1       3  6
-    # 2      5   5      2
-    #   6  3       1  4
-
-    #  REMEMBER, these are translated sites.
-
-    # If a site is mappee to the same position we can set the criteria
 
     H_Ef_paths = Dict{SiteLabel,SiteLabel}( SiteLabel("H1", 1) => SiteLabel("Ef1", 4),
                                             SiteLabel("H2", 1) => SiteLabel("Ef5", 2), # Ef1/Ef2 Lower
@@ -533,69 +507,13 @@ function trap_site_paths()
                                             SiteLabel("H5", 6) => SiteLabel("Ef6", 1))
 
 
-    # Have symmetry that comes from the Ei-H side imposed.
 
-    Ef_H_paths = Dict{SiteLabel,SiteLabel}(SiteLabel("Ef2",  4) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef3",  4) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef4",  4) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef6",  4) => SiteLabel("H2", 3),
-                                           SiteLabel("Ef7",  4) => SiteLabel("H2", 3),
-                                           SiteLabel("Ef8",  4) => SiteLabel("H2", 6),
-                                           SiteLabel("Ef9",  4) => SiteLabel("H2", 3),
-
-                                           SiteLabel("Ef2",  5) => SiteLabel("H2", 2),
-                                           SiteLabel("Ef3",  5) => SiteLabel("H2", 2),
-                                           SiteLabel("Ef4",  5) => SiteLabel("H2", 2),
-                                           SiteLabel("Ef6",  5) => SiteLabel("H3", 2),
-                                           SiteLabel("Ef7",  5) => SiteLabel("Ef7", 5),
-                                           SiteLabel("Ef8",  5) => SiteLabel("Ef8", 5),
-                                           SiteLabel("Ef9",  5) => SiteLabel("H4", 2),
-
-                                           SiteLabel("Ef2",  6) => SiteLabel("H2", 4),
-                                           SiteLabel("Ef3",  6) => SiteLabel("H2", 1),
-                                           SiteLabel("Ef4",  6) => SiteLabel("H6", 4),
-                                           SiteLabel("Ef6",  6) => SiteLabel("H5", 1),
-                                           SiteLabel("Ef7",  6) => SiteLabel("H4", 1),
-                                           SiteLabel("Ef8",  6) => SiteLabel("H2", 1),
-                                           SiteLabel("Ef9",  6) => SiteLabel("H5", 4),
-
-                                           SiteLabel("Ef1",  1) => SiteLabel("H2", 2), # Ef -> H sector 4
-                                           SiteLabel("Ef2",  1) => SiteLabel("H2", 2),
-                                           SiteLabel("Ef3",  1) => SiteLabel("H2", 6),
-                                           SiteLabel("Ef4",  1) => SiteLabel("H6", 6),
-                                           SiteLabel("Ef5",  1) => SiteLabel("H2", 6),
-                                           SiteLabel("Ef6",  1) => SiteLabel("H5", 6),
-                                           SiteLabel("Ef7",  1) => SiteLabel("H4", 6),
-                                           SiteLabel("Ef8",  1) => SiteLabel("H2", 1),
-                                           SiteLabel("Ef9",  1) => SiteLabel("H5", 2),
-                                           SiteLabel("Ef10", 1) => SiteLabel("Ef10", 1),
-
-                                           SiteLabel("Ef1",  2) => SiteLabel("H1", 3), # Ef -> H sector 5
-                                           SiteLabel("Ef2",  2) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef3",  2) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef4",  2) => SiteLabel("H1", 3),
-                                           SiteLabel("Ef5",  2) => SiteLabel("H2", 1),
-                                           SiteLabel("Ef6",  2) => SiteLabel("H2", 5),
-                                           SiteLabel("Ef7",  2) => SiteLabel("H2", 5),
-                                           SiteLabel("Ef8",  2) => SiteLabel("H2", 1),
-                                           SiteLabel("Ef9",  2) => SiteLabel("H2", 5),
-                                           SiteLabel("Ef10", 2) => SiteLabel("H6", 5),
-
-                                           SiteLabel("Ef1",  3) => SiteLabel("H2", 4), # Ef -> H sector 5
-                                           SiteLabel("Ef2",  3) => SiteLabel("H2", 4),
-                                           SiteLabel("Ef3",  3) => SiteLabel("H2", 4),
-                                           SiteLabel("Ef4",  3) => SiteLabel("H2", 4),
-                                           SiteLabel("Ef5",  3) => SiteLabel("H7", 4),
-                                           SiteLabel("Ef6",  3) => SiteLabel("H3", 4),
-                                           SiteLabel("Ef7",  3) => SiteLabel("Ef7",  3),
-                                           SiteLabel("Ef8",  3) => SiteLabel("Ef8",  3),
-                                           SiteLabel("Ef9",  3) => SiteLabel("H4", 4),
-                                           SiteLabel("Ef10", 3) => SiteLabel("Ef10", 3))
+    H_Ei_paths = convert_site_site_dict_to_other_core(H_Ef_paths)
+    Ef_H_paths = convert_site_site_dict_to_other_core(Ei_H_paths)
 
 
     return Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
 end
-
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>          Utility functions for manipulating sites          <<<<<<<<<<
