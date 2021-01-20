@@ -1,0 +1,13 @@
+include(trap_sites.jl)
+include(mcclean_isotherm_conc_dist.jl)
+
+using TrapSites
+using McCleanIsotherm
+
+""" This file combines the concentrations derived from the McClean
+Isotherm and uses the trap sites defined such that there is a
+consistent definition of total concentration across all dislocation
+core positions, which do not change even when there is a different
+number of interactions (sites) which interact with the core at any
+given time
+ """

@@ -1,3 +1,5 @@
+module TrapSites
+
 import Base
 using Plots
 
@@ -741,10 +743,10 @@ function plot_trap_mappings()
     xf = H_Ef_positions[3,:]
     yf = H_Ef_positions[4,:]
 
-    # xi = Ef_H_positions[1,:]
-    # yi = Ef_H_positions[2,:]
-    # xf = Ef_H_positions[3,:]
-    # yf = Ef_H_positions[4,:]
+    xi = Ef_H_positions[1,:]
+    yi = Ef_H_positions[2,:]
+    xf = Ef_H_positions[3,:]
+    yf = Ef_H_positions[4,:]
 
     scatter!(xi, yi,
                  markershape = :circle,
@@ -910,4 +912,5 @@ function plot_trap_mappings()
     end
 
 
+end
 end
