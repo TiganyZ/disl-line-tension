@@ -59,6 +59,30 @@ struct SiteLabel
     section::Int64
 end
 
+struct Isolated
+end
+
+struct Normal
+end
+
+macro createcoretype(core1::Symbol, core2::Symbol)
+    ConcreteT = Symbol(core1, :_, core2)
+    return quote
+        immutable struct $ConcreteT
+            type::Union{Normal,Isolated}
+        end
+        return $(esc(ConcreteT))
+    end
+end
+end
+
+
+@createcoretype Ei H
+@createcoretype Ef H
+@createcoretype H Ei
+@createcoretype H Ef
+
+
 # Note: Even though this type is apparently immutable, there is a problem with indexing the dictionaries with the keys as these types.
 #     > This is apparently only a problem with mutable structs, yet this isn't...
 

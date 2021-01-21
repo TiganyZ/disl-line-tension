@@ -65,6 +65,29 @@ end
 # >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
+# > Note: Scaling by projection won't work so well. It is better that
+# > is just measures the x coordinate as the dislocation traverses
+# > from one Peierls valley to the next.
+
+# > Perhaps create Isolated type, for those sites that scale to zero, and Normal, for those that interact normally
+
+
+
+
+function get_proportion_from_core_distance(site_type::Normal, site, core_position)
+    # First Peierls Valley is at (0,0)
+    alat = √2 * 2.87
+    Ef = [ 2/6. * alat * √3, 0.]
+
+    if contains(site.site, "i")
+        # Then if
+    end
+
+
+    return
+end
+
+
 
 function proportion_upon_projection_line(core, core_position, side)
     alat = √2 * 2.87
