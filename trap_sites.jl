@@ -65,22 +65,21 @@ end
 struct Normal
 end
 
-macro createcoretype(core1::Symbol, core2::Symbol)
-    ConcreteT = Symbol(core1, :_, core2)
-    return quote
-        immutable struct $ConcreteT
-            type::Union{Normal,Isolated}
-        end
-        return $(esc(ConcreteT))
-    end
-end
+struct Ei_H
+    type::Union{Normal,Isolated}
 end
 
+struct H_Ei
+    type::Union{Normal,Isolated}
+end
 
-@createcoretype Ei H
-@createcoretype Ef H
-@createcoretype H Ei
-@createcoretype H Ef
+struct H_Ef
+    type::Union{Normal,Isolated}
+end
+
+struct Ef_H
+    type::Union{Normal,Isolated}
+end
 
 
 # Note: Even though this type is apparently immutable, there is a problem with indexing the dictionaries with the keys as these types.
@@ -616,7 +615,10 @@ function remove_duplicate_columns(array)
     return new_data
 end
 
-
+function convert_sitelabel_to_pos_function()
+    label_to_pos = create_trap_labels_to_positions_dict()
+    return x -> convert(x::SiteLabel, label_to_pos)
+end
 
 function find_self_mapped_sites(trap_site_paths)
     return filter((k,v) -> k==v, trap_site_paths)

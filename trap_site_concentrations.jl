@@ -72,20 +72,52 @@ end
 # > Perhaps create Isolated type, for those sites that scale to zero, and Normal, for those that interact normally
 
 
+# Can change these if the atoms ARENT in the isolated category
+
+get_proportion(region::Ei_H, core_position) = (1. - core_position[1] / (1/6. * √2 * 2.87 * √3))
+get_proportion(region::H_Ei, core_position) =       core_position[1] / (1/6. * √2 * 2.87 * √3)
+
+get_proportion(region::H_Ef, core_position) = (1. - (core_position[1] - 1/6. * √2 * 2.87 * √3) / (1/6. * √2 * 2.87 * √3))
+get_proportion(region::Ef_H, core_position) = (core_position[1] - 1/6. * √2 * 2.87 * √3) / (1/6. * √2 * 2.87 * √3)
 
 
-function get_proportion_from_core_distance(site_type::Normal, site, core_position)
-    # First Peierls Valley is at (0,0)
-    alat = √2 * 2.87
-    Ef = [ 2/6. * alat * √3, 0.]
+function get_multiplicative_factors(region, core_position)
+    # Site is in the dictionary
+    proportion = get_proportion(region, core_position)
 
-    if contains(site.site, "i")
-        # Then if
+    if isa(region.type, Isolated)
+        # Decay to zero depending on initial proportion
+        envelope = initial_site
+    else
+        envelope = 1.0
     end
 
-
-    return
+    return proportion, envelope
 end
+
+
+function get_concentration(site_position, core_position, conc_func)
+    return conc_func( norm(core_position - site_position) )
+end
+
+
+function interaction_with_proportions(func, conc_func, region, initial_sitelabel, final_sitelabel, convert_sitelabel)
+    p, overall = get_multiplicative_factors(region, core_position)
+
+    initial_position = convert_sitelabel(initial_sitelabel)
+    final_position   = convert_sitelabel(final_sitelabel)
+
+    initial = func(initial_position) * concentration(initial_position, core_position, conc_func)
+    final   = func(final_position)   * concentration(final_position,   core_position, conc_func)
+
+    return (initial*p + final*(1-p))*overall
+end
+
+function initialise_interactions()
+    convert_sitelabel_to_pos = convert_sitelabel_to_pos_function()
+end
+
+
 
 
 
