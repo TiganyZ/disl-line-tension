@@ -53,32 +53,29 @@ We need to ascertain all the sites along the line.
 
  """
 
+abstract type AbstractRegion end
+
+struct Ei_H <: AbstractRegion
+    type::Symbol
+end
+
+struct Ef_H <: AbstractRegion
+    type::Symbol
+end
+
+struct H_Ei <: AbstractRegion
+    type::Symbol
+end
+
+struct H_Ef <: AbstractRegion
+    type::Symbol
+end
+
+
 
 struct SiteLabel
     site::String
     section::Int64
-end
-
-struct Isolated
-end
-
-struct Normal
-end
-
-struct Ei_H
-    type::Union{Normal,Isolated}
-end
-
-struct H_Ei
-    type::Union{Normal,Isolated}
-end
-
-struct H_Ef
-    type::Union{Normal,Isolated}
-end
-
-struct Ef_H
-    type::Union{Normal,Isolated}
 end
 
 
@@ -620,29 +617,18 @@ function convert_sitelabel_to_pos_function()
     return x -> convert(x::SiteLabel, label_to_pos)
 end
 
-function find_self_mapped_sites(trap_site_paths)
-    return filter((k,v) -> k==v, trap_site_paths)
-end
 
-function combine_mapped_sites(trap_site_paths)
-    # Want the Ei state to have the self-mapped Ef states and vice versa
-    # Want the H state ot have all self-mapped Ei/Ef sites
-    # trap_site_paths is a tuple of the dictionaries defined above
-    # > Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
-
-    self_mapped_Ei_H, self_mapped_H_Ei, self_mapped_H_Ef, self_mapped_Ef_H = map(find_self_mapped_sites, trap_site_paths)
-
-    # Want the Ei state to have the self-mapped Ef states
-    Ei_H_paths = merge( trap_site_paths[1], self_mapped_Ef_H )
-    Ef_H_paths = merge( trap_site_paths[3], self_mapped_Ei_H )
-
-    H_Ei_paths = merge( trap_site_paths[2], self_mapped_Ei_H, self_mapped_Ef_H )
-    H_Ef_paths = merge( trap_site_paths[4], self_mapped_Ei_H, self_mapped_Ef_H )
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Utility functions for manipulating sites          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
 
 
 
-    return Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths
-end
+
+
+# ////////////////////////////////////////////////////////////////////////////////
+#           >>>>>>>>>>         Plotting functions          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
 
 
 function plot_trap_mappings()
