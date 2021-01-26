@@ -1,8 +1,11 @@
-include(trap_sites.jl)
-include(mcclean_isotherm_conc_dist.jl)
+module TrapSites
 
-using TrapSites
+include(trap_sites.jl)
+include(interaction_types.jl)
+include(mcclean_isotherm_conc_dist.jl)
 using McCleanIsotherm
+using InteractionTypes
+
 
 """ This file combines the concentrations derived from the McClean
 Isotherm and uses the trap sites defined such that there is a
@@ -58,6 +61,45 @@ Process:
  """
 
 # ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Defining the types          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+abstract type AbstractRegion end
+
+struct Ei_H <: AbstractRegion end
+struct Ef_H <: AbstractRegion end
+struct H_Ei <: AbstractRegion end
+struct H_Ef <: AbstractRegion end
+
+
+struct ConcSolutes{T <: AbstractFloat}
+    interact::Bool
+    interaction_type::Union{InteractionTypes.C_Lorentzian{T},InteractionTypes.H_Lorentzian{T}}
+    convert_sitelabel::Function
+end
+
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Defining the trap sites          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+function get_paths(core_position)
+    Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths = trap_site_paths()
+    Ei_H_isolated, H_Ei_isolated, H_Ef_isolated, Ef_H_isolated = isolated_trap_sites()
+
+    midpoint = (1/6. * √2 * 2.87 * √3)
+    if core_position < midpoint
+        forward  = Ei_H(), Ei_H_paths, Ei_H_isolated
+        backward = H_Ei(), H_Ei_paths, H_Ei_isolated
+    else
+        forward  = H_Ef(), H_Ef_paths, H_Ef_isolated
+        backward = Ef_H(), Ef_H_paths, Ef_H_isolated
+    end
+    return forward, backward
+end
+
+
+
+# ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>          Defining the trap sites          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
@@ -98,16 +140,6 @@ end
 # >>>>>>>>>>         Definining concentrations          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-
-function get_overall_factor(region, core_position)
-    if region.type == :isolated
-        # Decay to zero depending on initial proportion
-        overall = get_proportion(region, core_position)
-    else
-        overall = 1.0
-    end
-    return overall
-end
 
 function concentrations(trap_positions, trap_references, scaling, core_position, conc_func)
     C_tot = zeros(size(trap_positions,1))
@@ -163,8 +195,22 @@ function get_scaling_for_all_sites(core_position, forward, backward)
     for (k,v) in trap_path_forward
         scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
     end
+
+    for (k,v) in isolated_forward
+        scaling[k] = get_proportion(region_forward, core_position)
+    end
+
+    for (k,v) in isolated_backward
+        scaling[k] = get_proportion(region_backward, core_position)
+    end
+
     return scaling
 end
+
+function scale_concentrations!(concentrations, scaling, references, ref_conc_sum)
+    return concentrations * ref_conc_sum/sum(concentrations)
+end
+
 
 # > Note: Scaling by projection won't work so well. It is better that
 # > is just measures the x coordinate as the dislocation traverses
@@ -172,20 +218,61 @@ end
 
 # > Perhaps create Isolated type, for those sites that scale to zero, and Normal, for those that interact normally
 
+function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, concentration, position, derivative=false)
+    E_int = 0.0
+    b_mag = 2.87 * √3 / 2
 
-function get_full_interaction_with_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
+    dv = Pⱼ[1:2] - position
+    dist = norm( dv )
+
+
+    if derivative
+        dd = get_dd(direction)
+                #         meV       eV/b
+        E_int += concentration * 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
+    else
+        E_int += concentration * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
+    end
+
+    return E_int
+end
+
+function get_total_conc_interaction_energy(solutes::ConcSolutes, j, core_position, derivative=false)
+    E_int = 0.0
+
+    forward, backward  = get_paths(core_position)
+    positions, concs = get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
+
+    for i in 1:size(positions,1)
+        E_int += get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
+    end
+    return E_int
+end
+
+
+function get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
 
     positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
-    concentrations = concentrations(positions, core_position, conc_func)
+    concs = concentrations(positions, core_position, conc_func)
     scaling = get_scaling_for_all_sites(core_position, forward, backward)
 
     # Using the easy core as the reference
-    true_concentrations = scale_concentrations(concentrations, scaling, references, ref_conc_sum)
+    scale_concentrations!(concs, scaling, references, ref_conc_sum)
 
-
-
-
+    # Now we have scaled the concentrations we work out the interaction energy
+    # Use the lorentzian
+    # As per Ivo's email, this should just be the scaled concentrations multiplied by the interaction energy of that site
+    return positions, concs
 end
+
+function get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
+    core_position = zeros(2)
+    positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
+    concentrations = concentrations(positions, core_position, conc_func)
+    scaling = get_scaling_for_all_sites(core_position, forward, backward)
+    return sum(concentrations)
+end
+
 
 function interaction_with_proportions(f, df, conc_f, dconc_f, region, initial_sitelabel, final_sitelabel, convert_sitelabel)
     overall = get_overall_factor(region, core_position)
@@ -284,33 +371,6 @@ function proportion_upon_projection_line(core, core_position, side)
     return proportion
 end
 
-function mask_duplicate_rows(array)
-    N = size(array, 1)
-    mask = ones(Bool, size(array) )
-    checked = []
 
-    for i in 1:N
-        pos1 = array[i,:]
-        for j in 1:N
-            if j != i
-                if !( [j,i] in checked)
-                    pos2 = array[j,:]
-                    if norm( pos1 - pos2 ) < 1e-1
-                        # Remove this position
-                        mask[i,:] .= [ false, false ]
-                    end
-                    push!( checked, [i,j])
-                end
-            end
-        end
-    end
-    return mask
-end
 
-function remove_duplicate_rows(array)
-    mask = mask_duplicate_rows(array)
-    N_mask = sum(mask[:,1])
-    new_data = zeros(Float64, (Int64(N_mask), 2) )
-    new_data[:,:] .= reshape( array[mask], size(new_data) )
-    return new_data
 end

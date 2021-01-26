@@ -1,7 +1,4 @@
-module TrapSites
-
 import Base
-using Plots
 
 """ This file describes the trap site occupation and the
 redistribution of the trap site probabilities
@@ -52,26 +49,6 @@ We need to ascertain all the sites along the line.
     One can get the positions from the dictionaries
 
  """
-
-abstract type AbstractRegion end
-
-struct Ei_H <: AbstractRegion
-    type::Symbol
-end
-
-struct Ef_H <: AbstractRegion
-    type::Symbol
-end
-
-struct H_Ei <: AbstractRegion
-    type::Symbol
-end
-
-struct H_Ef <: AbstractRegion
-    type::Symbol
-end
-
-
 
 struct SiteLabel
     site::String
@@ -632,6 +609,7 @@ end
 
 
 function plot_trap_mappings()
+    using Plots
     Ei_H_positions, H_Ei_positions, H_Ef_positions, Ef_H_positions = obtain_trap_mappings()
 
     label_to_position = create_trap_labels_to_positions_dict()
@@ -873,5 +851,4 @@ function plot_trap_mappings()
     end
 
 
-end
 end

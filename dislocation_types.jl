@@ -20,9 +20,9 @@ struct Dislocation{T <: AbstractFloat}
 end
 
 struct Disl_line
-   d::Dislocation
-   potential::Potential
-   solutes::Solutes
+    d::Dislocation
+    potential::Potential
+    solutes::Union{Solutes,ConcSolutes}
 end
 
 
@@ -186,7 +186,11 @@ function energy_point(D::Disl_line, x, j, N)
     ΔPⱼₖ, Pⱼ, l = get_energy_quantities(x, j, N)    
     conv = √2 / 3 * 2.87
     if D.solutes.interact
-        E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
+        if isa(D.solutes, ConcSolutes)
+            E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
+        else
+            E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
+        end
     end
 
     E_line = D.d.K/2. * ( ΔPⱼₖ ⋅ ΔPⱼₖ )  + D.potential.ΔEₚ( (Pⱼ[1:2]./conv)... ) + 1000*cross( D.d.σ * D.d.b, l ) ⋅ Pⱼ - E_int
