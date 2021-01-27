@@ -167,30 +167,6 @@ get_proportion(region::Ef_H, core_position) = (core_position[1] - 1/6. * √2 * 
 get_dproportion(region::Union{Ei_H,H_Ef}, core_position, direction) = direction == 1 ? - 1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
 get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction == 1 ?   1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
 
-
-# ////////////////////////////////////////////////////////////////////////////////
-# >>>>>>>>>>         Definining references          <<<<<<<<<<
-# ////////////////////////////////////////////////////////////////////////////////
-
-
-function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
-
-    positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
-    concs = concentrations(positions, core_position, conc_func)
-
-    energy_array = get_interaction_energy_array(solutes, Pⱼ, scaling, positions, derivative=false)
-    convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
-
-    return positions, concs
-end
-
-function get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
-    core_position = zeros(2)
-    positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
-    concentrations = concentrations(positions, core_position, conc_func)
-    return sum(concentrations)
-end
-
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +185,7 @@ function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, co
 
 end
 
-function get_scaling_for_all_sites(core_position, forward, backward)
+function get_scaling_for_all_sites(core_position, forward, backward, references)
     region_forward, trap_path_forward, isolated_forward = forward
     region_backward, trap_path_backward, isolated_backward = backward
 
@@ -220,6 +196,10 @@ function get_scaling_for_all_sites(core_position, forward, backward)
         scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
     end
 
+    for (k,v) in trap_path_backward
+        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_backward, trap_path_forward)
+    end
+
     for (k,v) in isolated_forward
         scaling[k] = get_proportion(region_forward, core_position)
     end
@@ -228,14 +208,38 @@ function get_scaling_for_all_sites(core_position, forward, backward)
         scaling[k] = get_proportion(region_backward, core_position)
     end
 
-    return scaling
+    return [scaling[k] for k in references]
 end
+
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>         Definining references          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+
+function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, scaling, forward, backward, ref_conc_sum)
+
+    positions, references = get_all_trap_positions(forward, backward, core_position, solutes.convert_sitelabel)
+    concs = concentrations(positions, core_position, solutes.conc_func)
+
+    energy_array = get_interaction_energy_array(solutes, Pⱼ, scaling, positions, derivative=false)
+    convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_conc_sum)
+
+    return positions, concs
+end
+
+function get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
+    core_position = zeros(2)
+    positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
+    concentrations = concentrations(positions, core_position, conc_func)
+    return sum(concentrations)
+end
+
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-function convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
+function convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_conc_sum)
     # Remember, the degeneracy factor in the in Maxwell-Boltzmann
     # statistics come for sites which will have the same energy but
     # they are distinguishable by other means. Does this apply here?
@@ -245,7 +249,7 @@ function convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
     kb = 0.000086173324 # eV/K
     T = 320.0 # K
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
-    return [ concs[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
+    return [ concs[i] * scaling[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -279,18 +283,20 @@ end
 
 
 
-function get_interaction_energy(solutes::ConcSolutes, core_position, convert_sitelabel, conc_func, derivative=false)
+function get_interaction_energy(solutes::ConcSolutes, core_position)
     E_int = 0.0
 
     forward, backward  = get_paths(core_position)
-    ref_conc_sum = get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
-    positions, concs = get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
+    ref_conc_sum = get_reference_concentration(get_paths(zeros(2))..., convert_sitelabel, solutes.conc_func)
+    scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
+    positions, occupancy = get_position_and_scaled_concentration(core_position, scaling, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
 
     for i in 1:size(positions,1)
-        E_int += concs[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
+        E_int += occupancy[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
     end
     return E_int
 end
 
+# Make this a function of the object ConcSolutes
 
 end

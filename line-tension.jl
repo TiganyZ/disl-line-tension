@@ -10,11 +10,13 @@ include("interaction_types.jl")
 include("peierls_potential.jl")
 include("dislocation_types.jl")
 include("mcclean_isotherm_conc_dist.jl")
+include("trap_site_concentrations.jl")
 
 using PeierlsPotential
 using DislocationTypes
 using InteractionTypes
 using McCleanIsotherm
+using TrapSites
 using StaticArrays
 
 using Plots
@@ -26,7 +28,7 @@ using SaddleSearch
 
 
 function line_tension_model( N, potential="Normal", stress=zeros(3,3), interaction_type="C",
-                             C_nom=433./1e6, ρ=1.e15, redistribute=true, mcclean=true )
+                             C_nom=433./1e6, ρ=1.e15, equilibrium=true, mcclean=true )
     # Define dislocation
     # > N = Number of images for the String method
     # > C_nom is the nominal carbon concentration
@@ -71,6 +73,13 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
         C = dC = x -> 0
     end
 
+    if equilibrium
+        conv_sitelabel = TrapSites.convert_sitelabel_to_pos_function()
+        solutes = ConcSolutes{Float64}(interact, interaction, conv_sitelabel, C)
+    else
+        solutes = Solutes{Float64}( interact, interaction, p_solute )
+    end
+
     
     interact = true
     p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 
@@ -79,7 +88,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
 
     d = Disl_line( Dislocation{Float64}(K, stress, b),
                    Potential{Function}( get_2D_peierls_profile(;pp_type=potential)... ),
-                   Solutes{Float64}( interact, interaction, p_solute ) )
+                   solutes )
 
 
     eVÅ_to_GPa = 160.21766208
