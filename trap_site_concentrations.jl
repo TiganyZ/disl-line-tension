@@ -6,9 +6,10 @@ include(mcclean_isotherm_conc_dist.jl)
 using McCleanIsotherm
 using InteractionTypes
 
+export convert_sitelabel_to_pos_function, ConcSolutes, get_interaction_energy
 
 """ This file combines the concentrations derived from the McClean
-Isotherm and uses the trap sites defined such that there is a
+Isotherm and uses Maxwell-Boltzmann statistics such that one can get the full interaction energy which is modified by the occupancy of the sites. The trap sites defined such that there is a
 consistent definition of total concentration across all dislocation
 core positions, which do not change even when there is a different
 number of interactions (sites) which interact with the core at any
@@ -76,6 +77,7 @@ struct ConcSolutes{T <: AbstractFloat}
     interact::Bool
     interaction_type::Union{InteractionTypes.C_Lorentzian{T},InteractionTypes.H_Lorentzian{T}}
     convert_sitelabel::Function
+    conc_func::Function
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -96,8 +98,6 @@ function get_paths(core_position)
     end
     return forward, backward
 end
-
-
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>          Defining the trap sites          <<<<<<<<<<
@@ -169,128 +169,18 @@ get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction 
 
 
 # ////////////////////////////////////////////////////////////////////////////////
-# >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
+# >>>>>>>>>>         Definining references          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, core_path_forward, core_path_backward)
-    # Find all labels in the interaction
 
-    initial_duplicates =  sum([k == initial_sitelabel for (k,v) in core_path_forward  ])
-    initial_duplicates += sum([v == initial_sitelabel for (k,v) in core_path_backward ])
-
-    final_duplicates =  sum([v == final_sitelabel for (k,v) in core_path_forward  ])
-    final_duplicates += sum([k == final_sitelabel for (k,v) in core_path_backward ])
-
-    # Want to scale from 1 to 1/n_duplicates
-    return (p*1./initial_duplicates + (1. - p)/final_duplicates)
-
-end
-
-function get_scaling_for_all_sites(core_position, forward, backward, references)
-    region_forward, trap_path_forward, isolated_forward = forward
-    region_backward, trap_path_backward, isolated_backward = backward
-
-    p = get_proportion(region_forward, core_position)
-
-    scaling = Dict{SiteLabel,Float64}()
-    for (k,v) in trap_path_forward
-        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
-    end
-
-    for (k,v) in trap_path_backward
-        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_backward, trap_path_forward)
-    end
-
-
-    for (k,v) in isolated_forward
-        scaling[k] = get_proportion(region_forward, core_position)
-    end
-
-    for (k,v) in isolated_backward
-        scaling[k] = get_proportion(region_backward, core_position)
-    end
-
-    scale_array = [ scaling[k] for k in references ]
-
-
-    return scale_array
-end
-
-function convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
-    # Remember, the degeneracy factor in the in Maxwell-Boltzmann
-    # statistics come for sites which will have the same energy but
-    # they are distinguishable by other means. Does this apply here?
-
-    # The whole scaling malarkey isn't useful to us at all then: the partial occupancies will sort it out for us and give the correct statistics?
-
-    kb = 0.000086173324 # eV/K
-    T = 320.0 # K
-    Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
-    return [ concs[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
-end
-
-
-# > Note: Scaling by projection won't work so well. It is better that
-# > is just measures the x coordinate as the dislocation traverses
-# > from one Peierls valley to the next.
-
-# > Perhaps create Isolated type, for those sites that scale to zero, and Normal, for those that interact normally
-
-function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, scale, position, derivative=false)
-    E_int = 0.0
-    b_mag = 2.87 * √3 / 2
-
-    dv = Pⱼ[1:2] - position
-    dist = norm( dv )
-
-
-    if derivative
-        dd = get_dd(direction)
-                #         meV       eV/b
-        E_int += scale * 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
-    else
-        E_int += scale * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
-    end
-
-    return E_int
-end
-
-
-function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, scaling, positions, derivative=false)
-    return [ get_single_interaction_energy(solutes, Pⱼ, s, p, derivative) for (s,p) in zip(scaling,positions)]
-end
-
-function get_total_conc_interaction_energy(solutes::ConcSolutes, core_position, derivative=false)
-    E_int = 0.0
-
-    forward, backward  = get_paths(core_position)
-    positions, concs = get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
-
-    # What we might actually want to do here, is scale the energy by
-    # the scaling factor. This will mean the effective interaction is
-    # more reasonable, and it enforces a more realistic occupancy
-
-    for i in 1:size(positions,1)
-        E_int += concs[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
-    end
-    return E_int
-end
-
-
-function get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
+function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
 
     positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concs = concentrations(positions, core_position, conc_func)
-    #    scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
 
-    energy_array = get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, scaling, positions, derivative=false)
+    energy_array = get_interaction_energy_array(solutes, Pⱼ, scaling, positions, derivative=false)
     convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
-    # Using the easy core as the reference
-    # scale_concentrations!(concs, scaling, references, ref_conc_sum)
 
-    # Now we have scaled the concentrations we work out the interaction energy
-    # Use the lorentzian
-    # As per Ivo's email, this should just be the scaled concentrations multiplied by the interaction energy of that site
     return positions, concs
 end
 
@@ -302,103 +192,66 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
 end
 
 
-function interaction_with_proportions(f, df, conc_f, dconc_f, region, initial_sitelabel, final_sitelabel, convert_sitelabel)
-    overall = get_overall_factor(region, core_position)
-    p       = get_proportion(region, core_position)
-    dp      = get_dproportion(region, core_position)
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
 
-    trap_position = get_trap_site_position(p, initial_sitelabel, final_sitelabel)
+function convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
+    # Remember, the degeneracy factor in the in Maxwell-Boltzmann
+    # statistics come for sites which will have the same energy but
+    # they are distinguishable by other means. Does this apply here?
 
-    conc, dconc = get_concentration(trap_position, core_position, conc_f, dconc_f)
+    # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly.
 
-    # Function will just be the interaction energy function, as it has been worked out
-    factor = scale_one_to_many_interaction(p, final_sitelabel, core_paths)
-
-    # Return the function and derivative
-    # Factor is constant so only multiplicative factor which depends on x is the concentration
-    # Can just keep it in the energy, as we have already resolved it in the interaction in dislocation types
-    # Or actually explicitly pyt it in, need integration with Solute type.
-    # h = f*(g*p)
-    # h' = f*(g*p)' + f'*(g*p)
-    # h' = f*(g'*p + g*p') + f'*(g*p)
-
-    fres  =  f( norm(core_position - site_position) )
-    dfres = df( norm(core_position - site_position) )
-
-    ret = fres * (dconc*p + dp*conc) + dfres*(conc*p)
-    return fres
+    kb = 0.000086173324 # eV/K
+    T = 320.0 # K
+    Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
+    return [ concs[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
 end
 
-function get_interaction_energy(solutes::Solutes, Pⱼ, derivative=false)
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>         Interaction energy          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+
+function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, occupancy, position, derivative=false)
     E_int = 0.0
     b_mag = 2.87 * √3 / 2
 
-    for idx in 1:size(solutes.positions,2)
+    dv = Pⱼ[1:2] - position
+    dist = norm( dv )
 
-        if abs.( j*b_mag .- solutes.positions[3,idx] ) .< 1e-3
 
-            dv = Pⱼ[1:2] .- solutes.positions[1:2,idx]
-            dist = norm( dv  )
-
-            if derivative
-                dd = get_dd(direction)
-                #         meV       eV/b
-                E_int += 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
-            else
-                E_int += 1000. *   lorentzian(solutes.interaction_type,  dist / b_mag)
-            end
-
-        end
+    if derivative
+        dd = get_dd(direction)
+        #                     meV       eV/b
+        E_int += occupancy * 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
+    else
+        E_int += occupancy * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
     end
 
     return E_int
 end
 
-function get_dd(direction)
-    if direction == 1
-        dd = (x,y) -> x/√(x^2+y^2)
-    else
-        dd = (x,y) -> y/√(x^2+y^2)
-    end
-    return dd
+
+function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, occupancy, positions, derivative=false)
+    return [ get_single_interaction_energy(solutes, Pⱼ, o, p, derivative) for (o,p) in zip(occupancy,positions)]
 end
 
 
 
-function initialise_interactions()
-    convert_sitelabel_to_pos = convert_sitelabel_to_pos_function()
-end
+function get_interaction_energy(solutes::ConcSolutes, core_position, convert_sitelabel, conc_func, derivative=false)
+    E_int = 0.0
 
+    forward, backward  = get_paths(core_position)
+    ref_conc_sum = get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
+    positions, concs = get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
 
-
-
-
-function proportion_upon_projection_line(core, core_position, side)
-    alat = √2 * 2.87
-    lengths = [ √(3) * alat, alat]
-
-    if core == "Ei"
-        reference_core_position = zeros(2)
-        diff = core_position - reference_core_position
-    elseif core == "Ef"
-        reference_core_position = [ 2/6.*lengths[1], 0.]
-        diff = core_position - reference_core_position
-    elseif core == "H"
-        reference_core_position = [ 1/6.*lengths[1], 1/6.*lengths[2] ]
-        diff = reference_core_position - core_position
+    for i in 1:size(positions,1)
+        E_int += concs[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
     end
-
-    if side == "left"
-        E_H_diff = [ 1/6.*lengths[1],  1/6.*lengths[2] ]
-    else
-        E_H_diff = [ 1/6.*lengths[1], -1/6.*lengths[2] ]
-    end
-
-    proportion = (diff * E_H_diff') / norm(E_H_diff)
-
-    return proportion
+    return E_int
 end
-
 
 
 end
