@@ -191,6 +191,45 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
     return sum(concentrations)
 end
 
+# ////////////////////////////////////////////////////////////////////////////////
+# >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
+# ////////////////////////////////////////////////////////////////////////////////
+
+function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, core_path_forward, core_path_backward)
+    # Find all labels in the interaction
+
+    initial_duplicates =  sum([k == initial_sitelabel for (k,v) in core_path_forward  ])
+    initial_duplicates += sum([v == initial_sitelabel for (k,v) in core_path_backward ])
+
+    final_duplicates =  sum([v == final_sitelabel for (k,v) in core_path_forward  ])
+    final_duplicates += sum([k == final_sitelabel for (k,v) in core_path_backward ])
+
+    # Want to scale from 1 to 1/n_duplicates
+    return (p*1./initial_duplicates + (1. - p)/final_duplicates)
+
+end
+
+function get_scaling_for_all_sites(core_position, forward, backward)
+    region_forward, trap_path_forward, isolated_forward = forward
+    region_backward, trap_path_backward, isolated_backward = backward
+
+    p = get_proportion(region_forward, core_position)
+
+    scaling = Dict{SiteLabel,Float64}()
+    for (k,v) in trap_path_forward
+        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
+    end
+
+    for (k,v) in isolated_forward
+        scaling[k] = get_proportion(region_forward, core_position)
+    end
+
+    for (k,v) in isolated_backward
+        scaling[k] = get_proportion(region_backward, core_position)
+    end
+
+    return scaling
+end
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
