@@ -130,7 +130,8 @@ function get_all_trap_positions(forward, backward, core_position, convert_sitela
             push!(positions, convert_sitelabel(sitelabel))
         end
     end
-    references = vcat(keys(trap_path_forward)...,keys(trap_path_backward)...)
+    references = vcat(keys(trap_path_forward)...,keys(trap_path_backward)...,
+                      keys(isolated_forward)..., keys(isolated_backward)...)
     return hcat(positions...)', references
 end
 
@@ -185,7 +186,7 @@ function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, co
 
 end
 
-function get_scaling_for_all_sites(core_position, forward, backward)
+function get_scaling_for_all_sites(core_position, forward, backward, references)
     region_forward, trap_path_forward, isolated_forward = forward
     region_backward, trap_path_backward, isolated_backward = backward
 
@@ -196,6 +197,11 @@ function get_scaling_for_all_sites(core_position, forward, backward)
         scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
     end
 
+    for (k,v) in trap_path_backward
+        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_backward, trap_path_forward)
+    end
+
+
     for (k,v) in isolated_forward
         scaling[k] = get_proportion(region_forward, core_position)
     end
@@ -204,11 +210,23 @@ function get_scaling_for_all_sites(core_position, forward, backward)
         scaling[k] = get_proportion(region_backward, core_position)
     end
 
-    return scaling
+    scale_array = [ scaling[k] for k in references ]
+
+
+    return scale_array
 end
 
-function scale_concentrations!(concentrations, scaling, references, ref_conc_sum)
-    return concentrations * ref_conc_sum/sum(concentrations)
+function convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
+    # Remember, the degeneracy factor in the in Maxwell-Boltzmann
+    # statistics come for sites which will have the same energy but
+    # they are distinguishable by other means. Does this apply here?
+
+    # The whole scaling malarkey isn't useful to us at all then: the partial occupancies will sort it out for us and give the correct statistics?
+
+    kb = 0.000086173324 # eV/K
+    T = 320.0 # K
+    Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
+    return [ concs[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
 end
 
 
@@ -218,7 +236,7 @@ end
 
 # > Perhaps create Isolated type, for those sites that scale to zero, and Normal, for those that interact normally
 
-function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, concentration, position, derivative=false)
+function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, scale, position, derivative=false)
     E_int = 0.0
     b_mag = 2.87 * √3 / 2
 
@@ -229,22 +247,31 @@ function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, concentration
     if derivative
         dd = get_dd(direction)
                 #         meV       eV/b
-        E_int += concentration * 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
+        E_int += scale * 1000. * dlorentzian(solutes.interaction_type,  dist / b_mag)*dd( dv[1]/b_mag, dv[2]/b_mag )
     else
-        E_int += concentration * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
+        E_int += scale * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
     end
 
     return E_int
 end
 
-function get_total_conc_interaction_energy(solutes::ConcSolutes, j, core_position, derivative=false)
+
+function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, scaling, positions, derivative=false)
+    return [ get_single_interaction_energy(solutes, Pⱼ, s, p, derivative) for (s,p) in zip(scaling,positions)]
+end
+
+function get_total_conc_interaction_energy(solutes::ConcSolutes, core_position, derivative=false)
     E_int = 0.0
 
     forward, backward  = get_paths(core_position)
     positions, concs = get_position_and_scaled_concentration(core_position, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
 
+    # What we might actually want to do here, is scale the energy by
+    # the scaling factor. This will mean the effective interaction is
+    # more reasonable, and it enforces a more realistic occupancy
+
     for i in 1:size(positions,1)
-        E_int += get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
+        E_int += concs[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)
     end
     return E_int
 end
@@ -254,10 +281,12 @@ function get_position_and_scaled_concentration(core_position, forward, backward,
 
     positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concs = concentrations(positions, core_position, conc_func)
-    scaling = get_scaling_for_all_sites(core_position, forward, backward)
+    #    scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
 
+    energy_array = get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, scaling, positions, derivative=false)
+    convert_conc_to_partial_occupancies!(concs, energies, T, ref_conc_sum)
     # Using the easy core as the reference
-    scale_concentrations!(concs, scaling, references, ref_conc_sum)
+    # scale_concentrations!(concs, scaling, references, ref_conc_sum)
 
     # Now we have scaled the concentrations we work out the interaction energy
     # Use the lorentzian
@@ -269,7 +298,6 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
     core_position = zeros(2)
     positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concentrations = concentrations(positions, core_position, conc_func)
-    scaling = get_scaling_for_all_sites(core_position, forward, backward)
     return sum(concentrations)
 end
 
