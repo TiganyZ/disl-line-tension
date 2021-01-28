@@ -255,12 +255,11 @@ end
 # ////////////////////////////////////////////////////////////////////////////////
 
 
-function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, occupancy, position)
+function get_single_interaction_energy(solutes::ConcSolutes, core_position, occupancy, position)
     E_int = 0.0
     b_mag = 2.87 * √3 / 2
 
-    dv = Pⱼ[1:2] - position
-    dist = norm( dv )
+    dist = norm( core_position - position )
 
     #                     meV       eV/b
     E_int += occupancy * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
@@ -269,13 +268,13 @@ function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, occupancy, po
 end
 
 
-function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, positions)
+function get_interaction_energy_array(solutes::ConcSolutes, core_position, positions)
     N = size(positions,2)
-    energies = zeros(eltype(Pⱼ), N)
+    energies = zeros(eltype(core_position), N)
     
     for i in 1:N
         p = positions[:,i]
-        energies[i] = get_single_interaction_energy(solutes, Pⱼ, 1.0, p)
+        energies[i] = get_single_interaction_energy(solutes, core_position, 1.0, p)
     end
     return energies
 end
@@ -291,7 +290,7 @@ function get_interaction_energy(solutes::ConcSolutes, core_position)
     positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
 
     for i in 1:size(positions,2)
-        E_int += get_single_interaction_energy(solutes, Pⱼ, occupancy[i], positions[:,i])
+        E_int += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end
     return E_int
 end
