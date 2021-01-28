@@ -187,7 +187,7 @@ function energy_point(D::Disl_line, x, j, N)
     conv = √2 / 3 * 2.87
     if D.solutes.interact
         if isa(D.solutes, ConcSolutes)
-            E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
+            E_int = get_interaction_energy(D.solutes, Pⱼ[1:2])
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
         end
@@ -202,6 +202,10 @@ end
 
 # function gradient_chunk
 
+function gradient_interaction_energy(S::ConcSolutes, core_position)
+    return ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
+end
+
 
 function gradient_point(D::Disl_line, x, j, N, direction)
     ΔPⱼₖ, Pⱼ, l = get_energy_quantities(x, j, N)    
@@ -211,7 +215,11 @@ function gradient_point(D::Disl_line, x, j, N, direction)
     b_mag = √3/2 * 2.87
     
     if D.solutes.interact
-        E_int = get_interaction_energy(D.solutes, j, Pⱼ, true, false, direction) / (b_mag / conv) #/ b_mag / conv
+        if isa(D.solutes, ConcSolutes)
+            E_int = gradient_interaction_energy(D.solutes, Pⱼ[1:2])
+        else
+            E_int = get_interaction_energy(D.solutes, j, Pⱼ, true, false, direction) / (b_mag / conv) #/ b_mag / conv
+        end
         # This is in meV/b therefore multiply by 1/b -> 1/(√3/2 * a)
         #        println("Interaction grad = $E_int meV/")
     end

@@ -78,6 +78,8 @@ struct ConcSolutes{T <: AbstractFloat}
     interaction_type::Union{InteractionTypes.C_Lorentzian{T},InteractionTypes.H_Lorentzian{T}}
     convert_sitelabel::Function
     conc_func::Function
+    ref_conc_sum::Float64
+    T::Float64
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -130,12 +132,14 @@ function get_all_trap_positions(forward, backward, core_position, convert_sitela
             push!(positions, convert_sitelabel(sitelabel))
         end
     end
-    references = vcat(keys(trap_path_forward)...,keys(trap_path_backward)...,
-                      keys(isolated_forward)..., keys(isolated_backward)...)
-    return hcat(positions...)', references
+    return hcat(positions...)'
 end
 
 
+function get_references(forward, backward)
+    return vcat(keys(forward[2])..., keys(backward[2])...,
+                keys(forward[3])..., keys(backward[3])...)
+end
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>         Definining concentrations          <<<<<<<<<<
@@ -216,20 +220,21 @@ end
 # ////////////////////////////////////////////////////////////////////////////////
 
 
-function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, scaling, forward, backward, ref_conc_sum)
+function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, scaling, forward, backward)
 
-    positions, references = get_all_trap_positions(forward, backward, core_position, solutes.convert_sitelabel)
+    positions = get_all_trap_positions(forward, backward, core_position, solutes.convert_sitelabel)
+    references = get_references(forward, backward)
     concs = concentrations(positions, core_position, solutes.conc_func)
 
-    energy_array = get_interaction_energy_array(solutes, Pⱼ, scaling, positions, derivative=false)
-    convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_conc_sum)
+    energies = get_interaction_energy_array(solutes, core_position, scaling, positions)
+    convert_conc_to_partial_occupancies!(concs, scaling, energies, solutes.T, solutes.ref_conc_sum)
 
     return positions, concs
 end
 
 function get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
     core_position = zeros(2)
-    positions, references = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
+    positions = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concentrations = concentrations(positions, core_position, conc_func)
     return sum(concentrations)
 end
@@ -247,9 +252,9 @@ function convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_c
     # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly.
 
     kb = 0.000086173324 # eV/K
-    T = 320.0 # K
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
-    return [ concs[i] * scaling[i] * exp(-Ei/(kb*T)) / Z / ref_conc_sum for Ei in energies]
+    norm =  ref_conc_sum / sum(concs)
+    return [ norm * concs[i] * scaling[i] * exp(-Ei/(kb*T)) / Z  for Ei in energies]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -277,7 +282,7 @@ function get_single_interaction_energy(solutes::ConcSolutes, Pⱼ, occupancy, po
 end
 
 
-function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, occupancy, positions, derivative=false)
+function get_interaction_energy_array(solutes::ConcSolutes, Pⱼ, occupancy, positions)
     return [ get_single_interaction_energy(solutes, Pⱼ, o, p, derivative) for (o,p) in zip(occupancy,positions)]
 end
 
@@ -287,9 +292,9 @@ function get_interaction_energy(solutes::ConcSolutes, core_position)
     E_int = 0.0
 
     forward, backward  = get_paths(core_position)
-    ref_conc_sum = get_reference_concentration(get_paths(zeros(2))..., convert_sitelabel, solutes.conc_func)
+    references = get_references(forward, backward)
     scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
-    positions, occupancy = get_position_and_scaled_concentration(core_position, scaling, forward, backward, convert_sitelabel, conc_func, ref_conc_sum)
+    positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
 
     for i in 1:size(positions,1)
         E_int += occupancy[i] * get_single_interaction_energy(solutes, Pⱼ, concs[1,:], positions[i,:], derivative=derivative)

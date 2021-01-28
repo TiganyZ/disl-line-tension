@@ -75,7 +75,9 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
 
     if equilibrium
         conv_sitelabel = TrapSites.convert_sitelabel_to_pos_function()
-        solutes = ConcSolutes{Float64}(interact, interaction, conv_sitelabel, C)
+        ref_conc_sum = TrapSites.get_reference_concentration(TrapSites.get_paths(zeros(2))..., conv_sitelabel, C)
+        temp = 320.0 # K
+        solutes = ConcSolutes{Float64}(interact, interaction, conv_sitelabel, C, ref_conc_sum, temp)
     else
         solutes = Solutes{Float64}( interact, interaction, p_solute )
     end
