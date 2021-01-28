@@ -1,8 +1,9 @@
 module InteractionTypes
 
 using Parameters
+using Dierckx
 
-export Solutes, C_Lorentzian, H_Lorentzian, lorentzian, dlorentzian, ddlorentzian
+export Solutes, ConcSolutes, C_Lorentzian, H_Lorentzian, lorentzian, dlorentzian, ddlorentzian
 
 
 @with_kw struct C_Lorentzian{T <: AbstractFloat}
@@ -20,6 +21,15 @@ struct Solutes{T <: AbstractFloat}
     interact::Bool
     interaction_type::Union{C_Lorentzian{T},H_Lorentzian{T}}
     positions::Array{Float64,2}
+end
+
+struct ConcSolutes{T <: AbstractFloat}
+    interact::Bool
+    interaction_type::Union{C_Lorentzian{T},H_Lorentzian{T}}
+    convert_sitelabel::Function
+    conc_func::Dierckx.Spline1D
+    ref_conc_sum::Float64
+    T::Float64
 end
 
 

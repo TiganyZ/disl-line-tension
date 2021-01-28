@@ -74,19 +74,25 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
         C = dC = x -> 0
     end
 
+    interact = true
+
     if equilibrium
         conv_sitelabel = convert_sitelabel_to_pos_function()
         ref_conc_sum = get_reference_concentration(get_paths(zeros(2))..., conv_sitelabel, C)
         temp = 320.0 # K
+        # Test
+        # p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 
+        # solutes_normal = solutes = Solutes{Float64}( interact, interaction, p_solute )
+        # @show solutes_normal
+        
         solutes = ConcSolutes{Float64}(interact, interaction, conv_sitelabel, C, ref_conc_sum, temp)
+        @show solutes
     else
+        p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 
         solutes = Solutes{Float64}( interact, interaction, p_solute )
     end
 
     
-    interact = true
-    p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 
-
     b = SVector(0., 0., b_mag )
 
     d = Disl_line( Dislocation{Float64}(K, stress, b),
@@ -127,13 +133,13 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     # precon = x->[copy(precond(d, xn; μ=μ)) for xn in x]
 
 
-    precon = x->[copy(hessprecond(d, xn; stab=0.1)) for xn in x]
+    # precon = x->[copy(hessprecond(d, xn; stab=0.1)) for xn in x]
 
     # precon = x -> [ copy( hessprecond(d, xn; stab=0.001) ) for xn in x ]
     #     precon = x->[copy(hessprecond(d,xn)) for xn in x]
 
-    preconP = SaddleSearch.localPrecon(precon = precon(disl_string),
-                                       precon_prep! = (P, x) -> precon(disl_string))
+    # preconP = SaddleSearch.localPrecon(precon = precon(disl_string),
+    #                                    precon_prep! = (P, x) -> precon(disl_string))
 
     preconI = SaddleSearch.localPrecon(precon = [I], precon_prep! = (P, x) -> P)
     
