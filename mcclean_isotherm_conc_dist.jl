@@ -1,11 +1,10 @@
 module McCleanIsotherm
 
-include("interaction_types.jl")
 
 using Plots
 using NLsolve
 using Dierckx
-using InteractionTypes
+using InteractionTypes: C_Lorentzian, H_Lorentzian, lorentzian
 
 export get_concentration_distance_dependence_splines
 

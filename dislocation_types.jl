@@ -3,6 +3,7 @@ module DislocationTypes
 using Parameters
 using InteractionTypes
 using PeierlsPotential
+import TrapSites: ConcSolutes, get_interaction_energy
 # using Distributed
 
 using StaticArrays

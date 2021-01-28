@@ -1,12 +1,10 @@
+# include("interaction_types.jl")
 module TrapSites
 
-include(trap_sites.jl)
-include(interaction_types.jl)
-include(mcclean_isotherm_conc_dist.jl)
-using McCleanIsotherm
-using InteractionTypes
+include("trap_sites.jl")
+using InteractionTypes: C_Lorentzian, H_Lorentzian, lorentzian, dlorentzian
 
-export convert_sitelabel_to_pos_function, ConcSolutes, get_interaction_energy
+export ConcSolutes, convert_sitelabel_to_pos_function, get_reference_concentration, get_paths, convert_sitelabel_to_pos_function,  get_interaction_energy
 
 """ This file combines the concentrations derived from the McClean
 Isotherm and uses Maxwell-Boltzmann statistics such that one can get the full interaction energy which is modified by the occupancy of the sites. The trap sites defined such that there is a
@@ -75,7 +73,7 @@ struct H_Ef <: AbstractRegion end
 
 struct ConcSolutes{T <: AbstractFloat}
     interact::Bool
-    interaction_type::Union{InteractionTypes.C_Lorentzian{T},InteractionTypes.H_Lorentzian{T}}
+    interaction_type::Union{C_Lorentzian{T},H_Lorentzian{T}}
     convert_sitelabel::Function
     conc_func::Function
     ref_conc_sum::Float64

@@ -8,9 +8,10 @@
 
 include("interaction_types.jl")
 include("peierls_potential.jl")
+include("trap_site_concentrations.jl")
 include("dislocation_types.jl")
 include("mcclean_isotherm_conc_dist.jl")
-include("trap_site_concentrations.jl")
+
 
 using PeierlsPotential
 using DislocationTypes
@@ -74,8 +75,8 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     end
 
     if equilibrium
-        conv_sitelabel = TrapSites.convert_sitelabel_to_pos_function()
-        ref_conc_sum = TrapSites.get_reference_concentration(TrapSites.get_paths(zeros(2))..., conv_sitelabel, C)
+        conv_sitelabel = convert_sitelabel_to_pos_function()
+        ref_conc_sum = get_reference_concentration(get_paths(zeros(2))..., conv_sitelabel, C)
         temp = 320.0 # K
         solutes = ConcSolutes{Float64}(interact, interaction, conv_sitelabel, C, ref_conc_sum, temp)
     else
@@ -473,12 +474,18 @@ else
     potential = "dTB"
     scale = 1.0
     name = "test_hessian"
+    eq = true
 end
 # Stress in yz is what we want for this coordinate system
 stress = (- scale * μ ) .* [ 0  0  0 ;
                              0  0  1 ;
                              0  1  0. ]
 
+interaction_type="C"
+C_nom=433./1e6
+ρ=1.e15
+equilibrium=true
+mcclean=true
 
 if potential == "sdTB"
     a = 126.62
@@ -510,4 +517,4 @@ stress = SMatrix{3,3}( (- scale * μ ) .* [ 0  b  0 ;
 
 #  rotate_stress_tensor( stress )
 
-line_tension_model(N, potential, stress )
+line_tension_model(N, potential, stress, interaction_type, C_nom, ρ, equilibrium, mcclean )
