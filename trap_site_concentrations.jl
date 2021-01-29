@@ -288,6 +288,7 @@ function get_interaction_energy(solutes::ConcSolutes, core_position)
     references = get_references(forward, backward)
     scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
     positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
+    write_trap_positions_images(positions, occupancy)
 
     for i in 1:size(positions,2)
         E_int += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
@@ -295,6 +296,22 @@ function get_interaction_energy(solutes::ConcSolutes, core_position)
     return E_int
 end
 
-# Make this a function of the object ConcSolutes
+
+function write_trap_positions_images(positions, occupancy)
+    file_ext = "trap_positions_occupancy"
+    all_data = vcat(positions,occupancy')'
+    
+    mode = "a"
+    write_object_to_file("\n", file_ext, mode)
+    write_object_to_file(all_data, file_ext, mode)
+end
+
+
+function write_object_to_file(object, filename,  mode)
+    open( filename,  mode) do io
+        writedlm( io,  object)
+    end
+end
+
 
 end

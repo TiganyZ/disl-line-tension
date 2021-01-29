@@ -172,7 +172,8 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
 end
 
 function dE(V,x)
-    #    write_images(V,x) 
+    write_images(V,x)
+    rm("trap_positions_occupancy",force=true)
     return DislocationTypes.construct_gradient( V, x )# DislocationTypes.gradient( V, x )
 end
 
