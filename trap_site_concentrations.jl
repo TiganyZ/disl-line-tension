@@ -302,7 +302,11 @@ function write_trap_positions_images(positions, occupancy)
     all_data = vcat(positions,occupancy')'
     
     mode = "a"
-    write_object_to_file("", file_ext, mode)
+    
+    open(file_ext, mode) do io 
+        println(io,"") 
+    end
+    
     write_object_to_file(all_data, file_ext, mode)
 end
 

@@ -303,7 +303,9 @@ function write_images(V,x)
     (img_count == 0? mode = "w" : mode = "a")
    
     # Trap positions occupancy
-    write_object_to_file("Image $(img_count + 1)", "trap_positions_occupancy", mode)
+    open( "trap_positions_occupancy",  mode) do io 
+        println(io, "Image $(img_count + 1)")
+    end
   
 
     write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
