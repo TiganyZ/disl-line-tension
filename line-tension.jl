@@ -173,7 +173,6 @@ end
 
 function dE(V,x)
     write_images(V,x)
-    rm("trap_positions_occupancy",force=true)
     return DislocationTypes.construct_gradient( V, x )# DislocationTypes.gradient( V, x )
 end
 
@@ -300,8 +299,13 @@ function write_images(V,x)
     file_ext = "$(name)_$(potential)_$(scale)"
 
     img_count = N_iter_total % ( N_images  ) 
-    #    println("\n Image = $img_count")
+
     (img_count == 0? mode = "w" : mode = "a")
+   
+    # Trap positions occupancy
+    write_object_to_file("Image $(img_count + 1)", "trap_positions_occupancy", mode)
+  
+
     write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
                          "image_positions_final_$(file_ext)_$img_count", "w")
     write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
