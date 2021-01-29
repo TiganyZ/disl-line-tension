@@ -303,6 +303,10 @@ function write_images(V,x)
     (img_count == 0? mode = "w" : mode = "a")
    
     # Trap positions occupancy
+    if N_iter_total > 0 && img_count == 0
+        cp("trap_positions_occupancy", "trap_positions_occupancy_final", true)
+    end
+
     open( "trap_positions_occupancy",  mode) do io 
         println(io, "Image $(img_count + 1)")
     end
