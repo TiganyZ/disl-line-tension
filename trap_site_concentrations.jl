@@ -137,7 +137,7 @@ end
 
 function concentrations(trap_positions, core_position, conc_func)
     C_tot = zeros(eltype(trap_positions), size(trap_positions,2))
-    for i in 1:size(trap_positions,1)
+    for i in 1:size(trap_positions,2)
         C_tot[i] += conc_func( norm(core_position - trap_positions[:,i]))
     end
     return C_tot
@@ -182,12 +182,12 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
     region_forward, trap_path_forward, isolated_forward = forward
     region_backward, trap_path_backward, isolated_backward = backward
 
-    @show region_forward
-    @show region_backward
+    # @show region_forward
+    # @show region_backward
 
     p = get_proportion(region_forward, core_position)
 
-    scaling = Dict{SiteLabel,Float64}()
+    scaling = Dict{SiteLabel,eltype(core_position)}()
     for (k,v) in trap_path_forward
         scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
     end
@@ -204,7 +204,7 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
         scaling[k] = get_proportion(region_backward, core_position)
     end
 
-    @show references 
+    # @show references 
     return [scaling[k] for k in references]
 end
 

@@ -203,8 +203,25 @@ end
 
 # function gradient_chunk
 
-function gradient_interaction_energy(S::ConcSolutes, core_position)
-    return ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
+function gradient_interaction_energy(S::ConcSolutes, core_position, direction, finite=true, s=1e-3, order=:second)
+    # ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
+  
+    # > When ForwardDiff gets to the concentration spline, it
+    # > necessarily stops, as the Dierckx spline implementation is
+    # > based on fortran.
+    # >> Solution: Use crude finite differences
+    
+    if finite
+        h = direction == 1 ? [ s, 0 ] : [ 0, s ]
+    
+        if order == :second
+            return (get_interaction_energy(S,core_position + h) - get_interaction_energy(S,core_position - h)) / (2*s)
+        else
+            return (get_interaction_energy(S,core_position + h) - get_interaction_energy(S,core_position)) / s
+        end
+    else
+        return ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position) 
+    end
 end
 
 
@@ -216,8 +233,9 @@ function gradient_point(D::Disl_line, x, j, N, direction)
     b_mag = √3/2 * 2.87
     
     if D.solutes.interact
+
         if isa(D.solutes, ConcSolutes)
-            E_int = gradient_interaction_energy(D.solutes, Pⱼ[1:2])
+            E_int = gradient_interaction_energy(D.solutes, Pⱼ[1:2], direction)
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, true, false, direction) / (b_mag / conv) #/ b_mag / conv
         end
