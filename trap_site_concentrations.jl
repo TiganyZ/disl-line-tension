@@ -185,23 +185,24 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
     # @show region_forward
     # @show region_backward
 
-    p = get_proportion(region_forward, core_position)
+    pf = get_proportion(region_forward, core_position)
+    pb = get_proportion(region_backward, core_position)
 
     scaling = Dict{SiteLabel,eltype(core_position)}()
     for (k,v) in trap_path_forward
-        scaling[k] = scale_one_to_many_interaction(p, k, v, trap_path_forward, trap_path_backward)
+        scaling[k] = scale_one_to_many_interaction(pf, k, v, trap_path_forward, trap_path_backward)
     end
 
     for (k,v) in trap_path_backward
-        scaling[k] = scale_one_to_many_interaction(1-p, k, v, trap_path_backward, trap_path_forward)
+        scaling[k] = scale_one_to_many_interaction(pb, k, v, trap_path_backward, trap_path_forward)
     end
 
     for k in isolated_forward
-        scaling[k] = get_proportion(region_forward, core_position)
+        scaling[k] = pf
     end
 
     for k in isolated_backward
-        scaling[k] = get_proportion(region_backward, core_position)
+        scaling[k] = pb
     end
 
     # @show references 
