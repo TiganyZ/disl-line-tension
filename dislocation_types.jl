@@ -296,7 +296,7 @@ end
 
 
 
- function construct_gradient(d::Disl_line, x)
+function construct_gradient(d::Disl_line, x, write)
     N = ceil(Int64, size(x,1)/2)
 
     # E_line = SharedArray{Float64,1}(2N)
@@ -315,9 +315,10 @@ end
     E_line = zeros(2N)
      #    xi = SharedArray{Float64,1}(x)
 
-
-    for j in 1:2N
-        E_line[j] = gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N))
+    if write 
+        for j in 1:2N
+            E_line[j] = gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N))
+        end
     end
     #E_line = SVector{2N}( [gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N)) for j in 1:2N] )
     return E_line

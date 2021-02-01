@@ -159,7 +159,15 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     path = ODEString(reltol=0.1, tol = tol, maxnit = maxnit,
                      precon_scheme = preconI,
                      path_traverse = serial(),
-                     verbose = verbose)
+                     verbose = verbose,
+                     fixed_ends = false)
+
+    # Fixed ends is false here, but constraining the gradient to be zero if at the ends, as in SaddleSearch/src/string.jl. 
+    #       dE0_temp = [[zeros(x[1])]; [dE(x[i]) for i in direction[2:end-1]];
+    #                  [zeros(x[1])]]
+    #    cost = length(param) - 2
+    # NOT reducing the cost parameter, will see if it affects anything
+
 
     X =  Path(disl_string)
 
@@ -172,8 +180,14 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
 end
 
 function dE(V,x)
+    global N_iter_total, N_images
+
+    img = N_iter_total % ( N_images ) + 1
+    write_grad = (img == 1 || img == N_images) ? false : true
+
     write_images(V,x)
-    return DislocationTypes.construct_gradient( V, x )# DislocationTypes.gradient( V, x )
+    
+    return DislocationTypes.construct_gradient( V, x, write_grad )# DislocationTypes.gradient( V, x )
 end
 
 
