@@ -159,7 +159,8 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     path = ODEString(reltol=0.1, tol = tol, maxnit = maxnit,
                      precon_scheme = preconI,
                      path_traverse = serial(),
-                     verbose = verbose)
+                     verbose = verbose
+                     fixed_ends = true)
 
     X =  Path(disl_string)
 
