@@ -73,24 +73,27 @@ end
 
 # First read the solute positions and the occupancies from the files
 function read_image_solutes_occupancies(file, n, n_points)
+    pos_occ = []
+    n_solutes = 0
     open(file) do f
         for i in eachline(f)
-            if ismatch("Image $n", i)
+            if contains(i,"Image $n")
                 # Read the solute positons where each point is demarcated by space
-                readline()
+                readline(f)
                 # Now read dlm
-                pos_occ = []
                 for j in 1:n_points
+                    println("Point ", j )
                     push!(pos_occ, read_solute_positions_for_point(f))
                     if j == 1
                         n_solutes = ceil(Int64,length(pos_occ[1])/3)
                     end
                 end
+                break
             end
         end
     end
     # Array is 3xN, where each row corresponds to x, y, and occ.
-    return reshape(hcat(pos_occ...), reshape(3,n_solutes,n_points))
+    return reshape(hcat(pos_occ...), (3,n_solutes,n_points))
 end
 
 function read_solute_positions_for_point(f)
@@ -98,12 +101,13 @@ function read_solute_positions_for_point(f)
     line = readline(f)
     while line != ""
         push!(lines, parse.(Float64, split(line) ))
+        #        println(lines[end])
         line = readline(f)
     end
-    return hcat(lines)
+    return hcat(lines...)
 end
 
-function plot_solute_positions(lattice, x, y, occ)
+function plot_solute_positions(lattice, x, y, occ, core_position)
     abcc = 2.87 # * 1.88971616463207
     alat = √2 * abcc
     lengths = [ √(3) * alat, alat]
@@ -130,40 +134,41 @@ function plot_solute_positions(lattice, x, y, occ)
              markersize  = 10,
              markeralpha = 0.5,
              # markerstrokewidth = 2,leg=false,
-             m = ColorGradient(:grayC),
+             m = ColorGradient(:Greys),
              zcolor=occ
              # markerstrokecolor = :black
              )
 
-    scatter!([Ei_core_position[1], Ef_core_position[1]], [Ei_core_position[2], Ef_core_position[2]],
-             markershape = :utriangle,
-             markercolor = :yellow,
-             markersize  = 10,
-             markeralpha = 0.9,
-             markerstrokewidth = 2,
-             markerstrokecolor = :black)
+    # scatter!([Ei_core_position[1], Ef_core_position[1]], [Ei_core_position[2], Ef_core_position[2]],
+    #          markershape = :utriangle,
+    #          markercolor = :yellow,
+    #          markersize  = 10,
+    #          markeralpha = 0.9,
+    #          markerstrokewidth = 2,
+    #          markerstrokecolor = :black)
 
-    scatter!([H_core_position[1]], [H_core_position[2]],
+    scatter!([core_position[1]], [core_position[2]],
              markershape = :dtriangle,
              markercolor = :yellow,
              markersize  = 10,
              markeralpha = 0.9,
              markerstrokewidth = 2,
-             markerstrokecolor = :black)
+             markerstrokecolor = :black, leg=false)
     return p
 end
 
 
 
-file     = ARGS[1]
-n        = 15 # ARGS[2]
+file     = "trap_positions_occupancy_final"# ARGS[1]
+n        = 18 # ARGS[2]
 n_points = 91 # ARGS[3]
 
 pos_occ = read_image_solutes_occupancies(file, n, n_points)
+core_positions = readdlm("image_positions_final_mclean_91pts_Nimg_35_equilib_C_int_tol-1e-3_itakura_0.0_$(n-1)")
 
 pyplot( xlims = (-4*√3 + 0.5, 4*√3 - 0.5),
         ylims = (-4*√3 + 0.2, 4*√3 - 0.8),
-        size=(600,500),
+        size=(1800,500),
         xticks=nothing,
         yticks=nothing,
         clims =( 0, 1. )
@@ -184,13 +189,13 @@ points = [1, 46, 91]
 
 pl = []
 l = @layout [ a b c ]
+clibrary(:colorbrewer)
+for point in points
+    x   = pos_occ[1,:,point]
+    y   = pos_occ[2,:,point]
+    occ = pos_occ[3,:,point]
 
-for point in point
-    x   = pos_occ[point,:,1]
-    y   = pos_occ[point,:,2]
-    occ = pos_occ[point,:,3]
-
-    push!(pl,plot_solute_positions(lattice, x, y, occ))
+    push!(pl,plot_solute_positions(lattice, x, y, occ, core_positions[point,:]))
 end
 
 plot(pl..., layout=l)
