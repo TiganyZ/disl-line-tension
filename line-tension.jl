@@ -155,6 +155,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
                          "initial_etot_final_$file_ext", mode)
     end
 
+    write_line_energies_of_images(d,Xout, "initial")
     tol = 1e-3
     path = ODEString(reltol=0.1, tol = tol, maxnit = maxnit,
                      precon_scheme = preconI,
@@ -269,9 +270,9 @@ function write_line_energies_of_images(d,X)
     end
 end
 
-function write_line_energy_of_image(d, xi, image)
+function write_line_energy_of_image(d, xi, image, prefix="")
     global name, potential, scale
-    file_ext = "$(name)_$(potential)_$(scale)"
+    file_ext = prefix*"$(name)_$(potential)_$(scale)"
 
     N = ceil(Int64, size(xi,1)/2)
     storage = zeros(eltype(xi), N, 3)
