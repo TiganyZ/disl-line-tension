@@ -247,8 +247,9 @@ function convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_c
 
     kb = 0.000086173324 # eV/K
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
-    norm =  ref_conc_sum / sum(concs)
-    return [ norm * concs[i] * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(concs)]
+    #    C = sum(concs) * 
+    #    norm =  ref_conc_sum / C
+    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(concs)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
