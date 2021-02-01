@@ -103,6 +103,7 @@ function read_solute_positions_for_point(f)
         push!(lines, parse.(Float64, split(line) ))
         #        println(lines[end])
         line = readline(f)
+        if contains(line,"Image") break end
     end
     return hcat(lines...)
 end
@@ -135,6 +136,7 @@ function plot_solute_positions(lattice, x, y, occ, core_position)
              markeralpha = 0.5,
              # markerstrokewidth = 2,leg=false,
              m = ColorGradient(:Greys),
+             colorbar=true,
              zcolor=occ
              # markerstrokecolor = :black
              )
@@ -160,18 +162,19 @@ end
 
 
 file     = "trap_positions_occupancy_final"# ARGS[1]
-n        = 18 # ARGS[2]
+n        = 18 # 18 # ARGS[2]
 n_points = 91 # ARGS[3]
 
 pos_occ = read_image_solutes_occupancies(file, n, n_points)
-core_positions = readdlm("image_positions_final_mclean_91pts_Nimg_35_equilib_C_int_tol-1e-3_itakura_0.0_$(n-1)")
+imgname = "image_positions_final_mclean_91pts_Nimg_35_equilib_C_int_tol-1e-3_itakura_0.0_"
+core_positions = readdlm(imgname * "$(n-1)")
 
 pyplot( xlims = (-4*√3 + 0.5, 4*√3 - 0.5),
         ylims = (-4*√3 + 0.2, 4*√3 - 0.8),
         size=(1800,500),
         xticks=nothing,
         yticks=nothing,
-        clims =( 0, 1. )
+        clims =( minimum(pos_occ[3,:,:]), maximum(pos_occ[3,:,:]) )
         )
 
 fnt = Plots.font( "Helvetica", 30 )
@@ -179,7 +182,6 @@ default(titlefont = fnt, guidefont=fnt, tickfont=fnt, legendfont=fnt)
 
 colors = palette(:tab10)
 ls = [:solid, :dash, :dot, :dashdot]
-
 
 
 lattice = create_lattice()

@@ -318,7 +318,11 @@ function write_images(V,x)
    
     # Trap positions occupancy
     if N_iter_total > 0 && img_count == 0
-        cp("trap_positions_occupancy", "trap_positions_occupancy_final"; remove_destination=true)
+        if N_iter_total == N_images
+            cp("trap_positions_occupancy", "trap_positions_occupancy_initial"; remove_destination=true)
+        else
+            cp("trap_positions_occupancy", "trap_positions_occupancy_final"; remove_destination=true)
+        end
     end
 
     open( "trap_positions_occupancy",  mode) do io 
