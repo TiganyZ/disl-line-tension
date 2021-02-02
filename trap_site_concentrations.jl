@@ -221,7 +221,7 @@ function get_position_and_scaled_concentration(solutes::ConcSolutes, core_positi
     concs =  concentrations(positions, core_position, solutes.conc_func)
 
     energies = get_interaction_energy_array(solutes, core_position, positions)
-    occupancies = partial_occupancies(references, scaling, energies, solutes.T, solutes.ref_conc_sum)
+    occupancies = partial_occupancies(forward[1], references, scaling, energies, solutes.T, solutes.ref_conc_sum)
 
     return positions, occupancies
 end
@@ -238,19 +238,35 @@ end
 # >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-function partial_occupancies(references, scaling, energies, T, ref_conc_sum)
+get_site_from_region(R::Ei_H) = SiteLabel("Ei1",  1)
+get_site_from_region(R::H_Ei) = SiteLabel("H1",  4)
+get_site_from_region(R::H_Ef) = SiteLabel("H1",  1)
+get_site_from_region(R::Ef_H) = SiteLabel("Ef1",  4)
+
+function get_reference_energy(region, references, energies)
+    site = get_site_from_region(region)
+    #    @show site
+    index = find( x -> x == site, references)[1]
+    #    @show index
+    #    @show references
+    return energies[index]
+end
+
+function partial_occupancies(region, references, scaling, energies, T, ref_conc_sum)
     # Remember, the degeneracy factor in the in Maxwell-Boltzmann
     # statistics come for sites which will have the same energy but
     # they are distinguishable by other means. Does this apply here?
 
-    # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly.
-
+    # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly. 
+    
+    #    E_ref = get_reference_energy(region, references, energies)
     kb = 0.000086173324 # eV/K
     #    e_ref = energies
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
     #    C = sum(concs) * 
     #    norm =  ref_conc_sum / C
-    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
+    # ref_conc_sum  
+    return [  scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
