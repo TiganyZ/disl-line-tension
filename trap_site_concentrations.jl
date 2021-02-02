@@ -263,8 +263,9 @@ function get_single_interaction_energy(solutes::ConcSolutes, core_position, occu
 
     dist = norm( core_position - position )
 
-    #                     meV       eV/b
-    E_int += occupancy * 1000. *  lorentzian(solutes.interaction_type,  dist / b_mag)
+    # Save meV conversion to later 
+    #                       eV/b
+    E_int += occupancy *  lorentzian(solutes.interaction_type,  dist / b_mag)
     
     return E_int
 end
@@ -295,7 +296,7 @@ function get_interaction_energy(solutes::ConcSolutes, core_position)
     for i in 1:size(positions,2)
         E_int += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end
-    return E_int
+    return E_int * 1000 
 end
 
 

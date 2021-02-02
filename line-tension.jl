@@ -505,6 +505,7 @@ if length(ARGS) != 0
     potential = ARGS[2]
     scale = parse(Float64,ARGS[3])
     name = ARGS[4]
+    C_nom = parse(Float64,ARGS[6])/1e6
 else
     N = 35
     potential = "dTB"
@@ -518,7 +519,7 @@ stress = (- scale * μ ) .* [ 0  0  0 ;
                              0  1  0. ]
 
 interaction_type="C"
-C_nom=433./1e6
+# C_nom=433./1e6
 ρ=1.e15
 equilibrium=true
 mcclean=true
