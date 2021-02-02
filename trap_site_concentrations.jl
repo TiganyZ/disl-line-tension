@@ -221,9 +221,9 @@ function get_position_and_scaled_concentration(solutes::ConcSolutes, core_positi
     concs =  concentrations(positions, core_position, solutes.conc_func)
 
     energies = get_interaction_energy_array(solutes, core_position, positions)
-    convert_conc_to_partial_occupancies!(concs, scaling, energies, solutes.T, solutes.ref_conc_sum)
+    occupancies = partial_occupancies(references, scaling, energies, solutes.T, solutes.ref_conc_sum)
 
-    return positions, concs
+    return positions, occupancies
 end
 
 function get_reference_concentration(forward, backward, convert_sitelabel, conc_func)
@@ -238,7 +238,7 @@ end
 # >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-function convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_conc_sum)
+function partial_occupancies(references, scaling, energies, T, ref_conc_sum)
     # Remember, the degeneracy factor in the in Maxwell-Boltzmann
     # statistics come for sites which will have the same energy but
     # they are distinguishable by other means. Does this apply here?
@@ -246,10 +246,11 @@ function convert_conc_to_partial_occupancies!(concs, scaling, energies, T, ref_c
     # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly.
 
     kb = 0.000086173324 # eV/K
+    #    e_ref = energies
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
     #    C = sum(concs) * 
     #    norm =  ref_conc_sum / C
-    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(concs)]
+    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
