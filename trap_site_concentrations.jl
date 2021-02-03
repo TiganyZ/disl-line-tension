@@ -96,10 +96,10 @@ end
 
 
 function get_trap_site_position(p, convert_sitelabel, initial_sitelabel, final_sitelabel)
-    initial_position = convert_sitelabel(initial_sitelabel)
-    final_position   = convert_sitelabel(final_sitelabel)
-
-    return (initial_position*p + final_position*(1-p))
+    #    initial_position = 
+    #    final_position   = convert_sitelabel(final_sitelabel)
+    #    (initial_position*p + final_position*(1-p))
+    return convert_sitelabel(initial_sitelabel)
 end
 
 function push_trap_site!(positions, convert_sitelabel, trap_paths, p)
@@ -189,24 +189,29 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
     pb = get_proportion(region_backward, core_position)
 
     scaling = Dict{SiteLabel,eltype(core_position)}()
+    proportions = []
     for (k,v) in trap_path_forward
         scaling[k] = scale_one_to_many_interaction(pf, k, v, trap_path_forward, trap_path_backward)
+        push!(proportions, pf)
     end
 
     for (k,v) in trap_path_backward
         scaling[k] = scale_one_to_many_interaction(pb, k, v, trap_path_backward, trap_path_forward)
+        push!(proportions, pb)
     end
 
     for k in isolated_forward
         scaling[k] = pf
+        push!(proportions, pf)
     end
 
     for k in isolated_backward
         scaling[k] = pb
+        push!(proportions, pb)
     end
 
     # @show references 
-    return [scaling[k] for k in references]
+    return [scaling[k] for k in references], proportions
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -214,13 +219,13 @@ end
 # ////////////////////////////////////////////////////////////////////////////////
 
 
-function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, scaling, forward, backward)
+function get_position_and_scaled_concentration(solutes::ConcSolutes, core_position, scaling, proportions, forward, backward)
 
     positions = get_all_trap_positions(forward, backward, core_position, solutes.convert_sitelabel)
     references = get_references(forward, backward)
-    concs =  concentrations(positions, core_position, solutes.conc_func)
+    #    concs =  concentrations(positions, core_position, solutes.conc_func)
 
-    energies = get_interaction_energy_array(solutes, core_position, positions)
+    energies = get_interaction_energy_array(solutes, proportions, core_position, positions)
     occupancies = partial_occupancies(forward[1], references, scaling, energies, solutes.T, solutes.ref_conc_sum)
 
     return positions, occupancies
@@ -289,13 +294,14 @@ function get_single_interaction_energy(solutes::ConcSolutes, core_position, occu
 end
 
 
-function get_interaction_energy_array(solutes::ConcSolutes, core_position, positions)
+function get_interaction_energy_array(solutes::ConcSolutes, proportions, core_position, positions)
     N = size(positions,2)
     energies = zeros(eltype(core_position), N)
     
+
     for i in 1:N
-        p = positions[:,i]
-        energies[i] = get_single_interaction_energy(solutes, core_position, 1.0, p)
+        pos = positions[:,i]
+        energies[i] = proportions[i] * get_single_interaction_energy(solutes, core_position, 1.0, pos)
     end
     return energies
 end
@@ -304,27 +310,26 @@ end
 
 function get_interaction_energy(solutes::ConcSolutes, core_position, write=false)
 
-
     forward, backward  = get_paths(core_position)
     references = get_references(forward, backward)
-    scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
-    positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
+    scaling, proportions = get_scaling_for_all_sites(core_position, forward, backward, references)
+    positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, proportions, forward, backward)
     
     #    E_int = 0.0
     E_int = zeros(size(positions,2))
     for i in 1:size(positions,2)
-        E_int[i] += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
+        E_int[i] +=  get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end
 
-    if write write_trap_positions_images(positions, occupancy, E_int) end
+    if write write_trap_positions_images(positions, occupancy, E_int, proportions) end
 
     return sum(E_int) * 1000 
 end
 
 
-function write_trap_positions_images(positions, occupancy, energies)
+function write_trap_positions_images(positions, occupancy, energies, proportions)
     file_ext = "trap_positions_occupancy"
-    all_data = vcat(positions,occupancy', energies')'
+    all_data = vcat(positions, occupancy', energies', proportions')'
     
     mode = "a"
     
