@@ -186,6 +186,7 @@ function dE(V,x)
     img = N_iter_total % ( N_images ) + 1
     write_grad = (img == 1 || img == N_images) ? false : true
 
+    
     write_images(V,x)
     
     return DislocationTypes.construct_gradient( V, x, write_grad )# DislocationTypes.gradient( V, x )
@@ -275,9 +276,9 @@ function write_line_energy_of_image(d, xi, image, prefix)
     file_ext = prefix*"$(name)_$(potential)_$(scale)"
 
     N = ceil(Int64, size(xi,1)/2)
-    storage = zeros(eltype(xi), N, 3)
+    storage = zeros(eltype(xi), N, 7)
     storage[:,1:2] .= reshape( xi, N, 2 )
-    storage[:,3  ] .= [ DislocationTypes.energy_point(d, xi, j, N) for j in 1:N ]
+    storage[:,3:7] .= hcat([ DislocationTypes.energy_point(d, xi, j, N, true) for j in 1:N ]... )
     
     write_object_to_file( storage, "line_energies_image_$(image)_$(file_ext)", "w")
 end
@@ -326,15 +327,17 @@ function write_images(V,x)
         end
     end
 
+    write_line_energy_of_image(V, x, img_count, "current_")
+
     open( "trap_positions_occupancy",  mode) do io 
         println(io, "Image $(img_count + 1)")
     end
   
 
-    write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
-                         "image_positions_final_$(file_ext)_$img_count", "w")
-    write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
-                         "image_positions_final_$(file_ext)_ALL", mode)
+    # write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
+    #                      "image_positions_final_$(file_ext)_$img_count", "w")
+    # write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
+    #                      "image_positions_final_$(file_ext)_ALL", mode)
     
     write_object_to_file(energy(V,x),
                          "etot_final_$file_ext", mode)

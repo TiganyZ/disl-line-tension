@@ -265,8 +265,9 @@ function partial_occupancies(region, references, scaling, energies, T, ref_conc_
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
     #    C = sum(concs) * 
     #    norm =  ref_conc_sum / C
-    # ref_conc_sum  
-    return [  scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
+
+    #  > Here, arbitrarily dividing my the number of particles, assuming the total number of solutes per b is 1. 
+    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -301,25 +302,29 @@ end
 
 
 
-function get_interaction_energy(solutes::ConcSolutes, core_position)
-    E_int = 0.0
+function get_interaction_energy(solutes::ConcSolutes, core_position, write=false)
+
 
     forward, backward  = get_paths(core_position)
     references = get_references(forward, backward)
     scaling = get_scaling_for_all_sites(core_position, forward, backward, references)
     positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
-    write_trap_positions_images(positions, occupancy)
-
+    
+    #    E_int = 0.0
+    E_int = zeros(size(positions,2))
     for i in 1:size(positions,2)
-        E_int += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
+        E_int[i] += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end
-    return E_int * 1000 
+
+    if write write_trap_positions_images(positions, occupancy, E_int) end
+
+    return sum(E_int) * 1000 
 end
 
 
-function write_trap_positions_images(positions, occupancy)
+function write_trap_positions_images(positions, occupancy, energies)
     file_ext = "trap_positions_occupancy"
-    all_data = vcat(positions,occupancy')'
+    all_data = vcat(positions,occupancy', energies')'
     
     mode = "a"
     

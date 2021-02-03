@@ -183,21 +183,31 @@ end
 #     return ΔPⱼₖ, Pⱼ, l
 # end
 
-function energy_point(D::Disl_line, x, j, N)
+function energy_point(D::Disl_line, x, j, N, detail=false)
     ΔPⱼₖ, Pⱼ, l = get_energy_quantities(x, j, N)    
     conv = √2 / 3 * 2.87
     if D.solutes.interact
         if isa(D.solutes, ConcSolutes)
-            E_int = get_interaction_energy(D.solutes, Pⱼ[1:2])
+            if detail
+                E_int = get_interaction_energy(D.solutes, Pⱼ[1:2], false)
+            else
+                E_int = get_interaction_energy(D.solutes, Pⱼ[1:2], true)
+            end
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
         end
     end
 
     E_line = D.d.K/2. * ( ΔPⱼₖ ⋅ ΔPⱼₖ )  + D.potential.ΔEₚ( (Pⱼ[1:2]./conv)... ) + 1000*cross( D.d.σ * D.d.b, l ) ⋅ Pⱼ - E_int
-    #    println(" Spring term = ", d.K/2. * ( ΔPⱼₖ ⋅ ΔPⱼₖ ))
-    
-    return E_line
+
+    if detail
+        return [ D.d.K/2. * ( ΔPⱼₖ ⋅ ΔPⱼₖ ),  
+                 D.potential.ΔEₚ( (Pⱼ[1:2]./conv)... ), 
+                 1000*cross( D.d.σ * D.d.b, l ) ⋅ Pⱼ,
+                 -E_int, E_line ]
+    else
+        return E_line
+    end
 end
 
 
