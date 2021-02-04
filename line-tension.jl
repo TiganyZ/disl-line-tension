@@ -277,7 +277,7 @@ function write_line_energy_of_image(d, xi, image, prefix)
 
     N = ceil(Int64, size(xi,1)/2)
     storage = zeros(eltype(xi), N, 7)
-    storage[:,1:2] .= reshape( xi, N, 2 ) .* * √2/3 * 2.87
+    storage[:,1:2] .= reshape( xi, N, 2 ) .* ( √2/3 * 2.87 )
     storage[:,3:7] .= hcat([ DislocationTypes.energy_point(d, xi, j, N, true) for j in 1:N ]... )'
     
     write_object_to_file( storage, "line_energies_image_$(image)_$(file_ext)", "w")
