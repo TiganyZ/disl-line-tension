@@ -151,15 +151,7 @@ function dinv_conc_sum(trap_positions, core_positions, conc_func, dconc_func)
     return - dg / g^2
 end
 
-function check_p(p)
-    if p > 1 
-        return 1
-    elseif p < 0
-        return 0
-    else
-        return p
-    end
-end
+check_p(p) = abs(p)
 
 get_proportion(region::Ei_H, core_position) = check_p(1. -  core_position[1] / (1/6. * √2 * 2.87 * √3))
 get_proportion(region::H_Ei, core_position) = check_p( core_position[1] / (1/6. * √2 * 2.87 * √3))
