@@ -258,20 +258,8 @@ function get_reference_energy(region, references, energies)
 end
 
 function partial_occupancies(region, references, scaling, energies, T, ref_conc_sum)
-    # Remember, the degeneracy factor in the in Maxwell-Boltzmann
-    # statistics come for sites which will have the same energy but
-    # they are distinguishable by other means. Does this apply here?
-
-    # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly. 
-    
-    #    E_ref = get_reference_energy(region, references, energies)
     kb = 0.000086173324 # eV/K
-    #    e_ref = energies
     Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
-    #    C = sum(concs) * 
-    #    norm =  ref_conc_sum / C
-
-    #  > Here, arbitrarily dividing my the number of particles, assuming the total number of solutes per b is 1. 
     return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 

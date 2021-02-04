@@ -123,7 +123,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     tol = 0.1 
     tolP = 1e-3
     maxnit = 500_000
-    verbose = 3
+    verbose = 4
 
 
     # Find energy scale, μ, for the preconditioner
