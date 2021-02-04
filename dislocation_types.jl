@@ -189,7 +189,10 @@ function energy_point(D::Disl_line, x, j, N, detail=false)
     if D.solutes.interact
         if isa(D.solutes, ConcSolutes)
             if detail
-                E_int = get_interaction_energy(D.solutes, Pⱼ[1:2], false)
+                # in simulation       ip2_x      = √3
+                # In trap site stuff, ip2_trap_x = (2/6. * √2 * 2.87 * √3)
+                # Therefore, to go from sim to trap site 
+                E_int = get_interaction_energy(D.solutes, Pⱼ[1:2] * √2/3 * 2.87, false)
             else
                 E_int = get_interaction_energy(D.solutes, Pⱼ[1:2], true)
             end
@@ -245,7 +248,7 @@ function gradient_point(D::Disl_line, x, j, N, direction)
     if D.solutes.interact
 
         if isa(D.solutes, ConcSolutes)
-            E_int = gradient_interaction_energy(D.solutes, Pⱼ[1:2], direction)
+            E_int = gradient_interaction_energy(D.solutes, Pⱼ[1:2] * √2/3 * 2.87, direction)
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, true, false, direction) / (b_mag / conv) #/ b_mag / conv
         end

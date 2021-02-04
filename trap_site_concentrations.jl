@@ -174,6 +174,7 @@ function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, co
     final_duplicates += sum([k == final_sitelabel for (k,v) in core_path_backward ])
 
     # Want to scale from 1 to 1/n_duplicates
+    if (p*1./initial_duplicates + (1. - p)/final_duplicates) < 0 println("SCALING: ", (p*1./initial_duplicates + (1. - p)/final_duplicates)) end
     return (p*1./initial_duplicates + (1. - p)/final_duplicates)
 
 end
