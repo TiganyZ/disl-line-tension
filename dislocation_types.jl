@@ -216,7 +216,7 @@ end
 
 # function gradient_chunk
 
-function gradient_interaction_energy(S::ConcSolutes, core_position, direction, finite=true, s=5e-4, order=:second)
+function gradient_interaction_energy(S::ConcSolutes, core_position, direction, finite=true, s=1e-3, order=:second)
     # ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
   
     # > When ForwardDiff gets to the concentration spline, it

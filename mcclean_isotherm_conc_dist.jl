@@ -250,7 +250,7 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int)
     T = collect(Float64, 200:10:Tf) 
     b_mag = 2.87 * √3 / 2
     # Want range which is up to 2.5 burgers vectors
-    distances = collect(0:0.1:5) .* b_mag
+    distances = collect(0:0.1:10) .* b_mag
     energies = [ -lorentzian( solute_int, d/b_mag ) for d in distances ]
     
     all_Cₖ = get_concentration_data(C_nom, ρ, energies, T, V_CC_ventelon)
@@ -359,7 +359,7 @@ function plot_concentration_distance_dependence()
         b = √3/2 * a
         b_mag = 2.87 * √3 / 2
 
-        distances = collect(0:0.1:5) .* b_mag
+        distances = collect(0:0.1:10) .* b_mag
         # Plot the concentrations found at operating temperatures for all sites around the core
         # > Plot it against the energy index
 

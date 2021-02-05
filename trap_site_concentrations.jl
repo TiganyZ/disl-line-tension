@@ -95,16 +95,16 @@ end
 # ////////////////////////////////////////////////////////////////////////////////
 
 
-function get_trap_site_position(p, convert_sitelabel, initial_sitelabel, final_sitelabel)
+function get_trap_site_position(pf, pb, convert_sitelabel, initial_sitelabel, final_sitelabel)
     initial_position = convert_sitelabel(initial_sitelabel)
     final_position   = convert_sitelabel(final_sitelabel)
 
-    return (initial_position*p + final_position*(1-p))
+    return (initial_position*pf + final_position*pb)
 end
 
-function push_trap_site!(positions, convert_sitelabel, trap_paths, p)
+function push_trap_site!(positions, convert_sitelabel, trap_paths, pf, pb)
     for (k,v) in trap_paths
-        push!(positions, get_trap_site_position(p,convert_sitelabel,k,v))
+        push!(positions, get_trap_site_position(pf, pb, convert_sitelabel,k,v))
     end
 end
 
@@ -112,9 +112,12 @@ function get_all_trap_positions(forward, backward, core_position, convert_sitela
     region_forward, trap_path_forward, isolated_forward = forward
     region_backward, trap_path_backward, isolated_backward = backward
 
+    pf = get_proportion(region_forward, core_position)
+    pb = get_proportion(region_backward, core_position)
+
     positions = []
-    push_trap_site!(positions, convert_sitelabel, trap_path_forward, get_proportion(region_forward, core_position))
-    push_trap_site!(positions, convert_sitelabel, trap_path_backward, get_proportion(region_backward, core_position))
+    push_trap_site!(positions, convert_sitelabel, trap_path_forward, pf, pb )
+    push_trap_site!(positions, convert_sitelabel, trap_path_backward, pb, pf )
 
     for isolated in [isolated_forward, isolated_backward]
         for sitelabel in isolated
@@ -151,7 +154,15 @@ function dinv_conc_sum(trap_positions, core_positions, conc_func, dconc_func)
     return - dg / g^2
 end
 
-check_p(p) = abs(p)
+# check_p(p) = p > 1.0 ? 1.0 : abs(p)
+
+function check_p(p)
+    if p > 1.0
+        return 1.0
+    elseif p < 0.0
+        return 0.0
+    end
+end
 
 get_proportion(region::Ei_H, core_position) = check_p(1. -  core_position[1] / (1/6. * √2 * 2.87 * √3))
 get_proportion(region::H_Ei, core_position) = check_p( core_position[1] / (1/6. * √2 * 2.87 * √3))
@@ -165,7 +176,7 @@ get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction 
 # >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, core_path_forward, core_path_backward)
+function scale_one_to_many_interaction(pf, pb, initial_sitelabel, final_sitelabel, core_path_forward, core_path_backward)
     # Find all labels in the interaction
 
     initial_duplicates =  sum([k == initial_sitelabel for (k,v) in core_path_forward  ])
@@ -175,8 +186,9 @@ function scale_one_to_many_interaction(p, initial_sitelabel, final_sitelabel, co
     final_duplicates += sum([k == final_sitelabel for (k,v) in core_path_backward ])
 
     # Want to scale from 1 to 1/n_duplicates
-    if (p*1./initial_duplicates + (1. - p)/final_duplicates) < 0 println("SCALING: ", (p*1./initial_duplicates + (1. - p)/final_duplicates)) end
-    return (p*1./initial_duplicates + (1. - p)/final_duplicates)
+    duplicates = pf*initial_duplicates + pb*final_duplicates
+    if duplicates < 0 println("SCALING: ", duplicates) end
+    return 1/duplicates
 
 end
 
@@ -192,11 +204,11 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
 
     scaling = Dict{SiteLabel,eltype(core_position)}()
     for (k,v) in trap_path_forward
-        scaling[k] = scale_one_to_many_interaction(pf, k, v, trap_path_forward, trap_path_backward)
+        scaling[k] = scale_one_to_many_interaction(pf, pb, k, v, trap_path_forward, trap_path_backward)
     end
 
     for (k,v) in trap_path_backward
-        scaling[k] = scale_one_to_many_interaction(pb, k, v, trap_path_backward, trap_path_forward)
+        scaling[k] = scale_one_to_many_interaction(pb, pf, k, v, trap_path_backward, trap_path_forward)
     end
 
     for k in isolated_forward
@@ -220,7 +232,7 @@ function get_position_and_scaled_concentration(solutes::ConcSolutes, core_positi
 
     positions = get_all_trap_positions(forward, backward, core_position, solutes.convert_sitelabel)
     references = get_references(forward, backward)
-    concs =  concentrations(positions, core_position, solutes.conc_func)
+    #    concs =  concentrations(positions, core_position, solutes.conc_func)
 
     energies = get_interaction_energy_array(solutes, core_position, positions)
     occupancies = partial_occupancies(forward[1], references, scaling, energies, solutes.T, solutes.ref_conc_sum)
