@@ -79,7 +79,8 @@ function get_paths(core_position)
     Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths = trap_site_paths()
     Ei_H_isolated, H_Ei_isolated, H_Ef_isolated, Ef_H_isolated = isolated_trap_sites()
 
-    midpoint = (1/6. * √2 * 2.87 * √3)
+    midpoint = (1/6 * √2 * 2.87 * √3)
+    println("PATHS: core_x = ", core_position[1], " midpoint = ", midpoint)
     if core_position[1] < midpoint
         forward  = Ei_H(), Ei_H_paths, Ei_H_isolated
         backward = H_Ei(), H_Ei_paths, H_Ei_isolated
@@ -161,13 +162,15 @@ function check_p(p)
         return 1.0
     elseif p < 0.0
         return 0.0
+    else
+        return p
     end
 end
 
-get_proportion(region::Ei_H, core_position) = check_p(1. -  core_position[1] / (1/6. * √2 * 2.87 * √3))
-get_proportion(region::H_Ei, core_position) = check_p( core_position[1] / (1/6. * √2 * 2.87 * √3))
-get_proportion(region::H_Ef, core_position) = check_p( (1. - (core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3)) )
-get_proportion(region::Ef_H, core_position) = check_p( (core_position[1] - 1/6. * √2 * 2.87 * √3) / (1/6. * √2 * 2.87 * √3))
+get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  core_position[1] / (1/6. * √2 * 2.87 * √3))
+get_proportion(region::H_Ei, core_position) = check_p(        core_position[1] / (1/6. * √2 * 2.87 * √3))
+get_proportion(region::H_Ef, core_position) = check_p( 1.0 - (core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3) )
+get_proportion(region::Ef_H, core_position) = check_p(       (core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3) )
 
 get_dproportion(region::Union{Ei_H,H_Ef}, core_position, direction) = direction == 1 ? - 1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
 get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction == 1 ?   1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
@@ -276,12 +279,12 @@ function partial_occupancies(region, references, scaling, energies, T, ref_conc_
     #    E_ref = get_reference_energy(region, references, energies)
     kb = 0.000086173324 # eV/K
     #    e_ref = energies
-    Z = sum( exp(-Ei/(kb*T)) for Ei in energies)
+    Z = sum( exp(Ei/(kb*T)) for Ei in energies)
     #    C = sum(concs) * 
     #    norm =  ref_conc_sum / C
 
     #  > Here, arbitrarily dividing my the number of particles, assuming the total number of solutes per b is 1. 
-    return [ ref_conc_sum * scaling[i] * exp(-energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
+    return [ ref_conc_sum * scaling[i] * exp(energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
@@ -330,22 +333,22 @@ function get_interaction_energy(solutes::ConcSolutes, core_position, write=false
         E_int[i] += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end
 
-    if write write_trap_positions_images(positions, occupancy, E_int) end
+    if write write_trap_positions_images(positions, occupancy, E_int, references) end
 
     return sum(E_int) * 1000 
 end
 
 
-function write_trap_positions_images(positions, occupancy, energies)
+function write_trap_positions_images(positions, occupancy, energies, references)
     file_ext = "trap_positions_occupancy"
-    all_data = vcat(positions,occupancy', energies')'
+    all_data = hcat(vcat(positions, occupancy', energies')', references)
     
     mode = "a"
     
     open(file_ext, mode) do io 
         println(io,"") 
     end
-    
+
     write_object_to_file(all_data, file_ext, mode)
 end
 
