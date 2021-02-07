@@ -80,7 +80,6 @@ function get_paths(core_position)
     Ei_H_isolated, H_Ei_isolated, H_Ef_isolated, Ef_H_isolated = isolated_trap_sites()
 
     midpoint = (1/6 * √2 * 2.87 * √3)
-    println("PATHS: core_x = ", core_position[1], " midpoint = ", midpoint)
     if core_position[1] < midpoint
         forward  = Ei_H(), Ei_H_paths, Ei_H_isolated
         backward = H_Ei(), H_Ei_paths, H_Ei_isolated
@@ -247,7 +246,7 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
     core_position = zeros(2)
     positions = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concs = concentrations(positions, core_position, conc_func)
-    return sum(concs)
+    return maximum(concs)
 end
 
 
