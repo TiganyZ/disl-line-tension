@@ -220,7 +220,7 @@ end
 
 ####----     Interpolate between the energy points    ----####
 
-function get_concentration_distance_dependence(C_nom, ρ, solute_int)
+function get_concentration_distance_dependence(C_nom, ρ, op_temp, solute_int)
     # > We have the binding energy of carbon as a function of distance from the dislocation core.
     # > One can sample from this distribution at multiple points and obtain the concentration as a function of distance at a certain temperature.
     # > Operating temperature is 320K
@@ -257,7 +257,7 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int)
     Ckk = clean_concentration_data(all_Cₖ, energies, T)
 
     # Now interpolate the cleaned data at T = 320
-    op_temp = 320.
+    #    op_temp = 320.
     tidx = find( x -> x==op_temp, T  )
 
     # We now have the concentrations as a function of distance, as there is a one-to-one correspondence between the energy and the distance
@@ -275,8 +275,8 @@ function get_concentration_distance_dependence(C_nom, ρ, solute_int)
 end
 
 
-function get_concentration_distance_dependence_splines(C_nom, ρ, solute_int)
-    S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nom, ρ, solute_int)
+function get_concentration_distance_dependence_splines(C_nom, ρ, op_temp, solute_int)
+    S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nom, ρ, op_temp, solute_int)
     return S, dS
 end
 
@@ -324,12 +324,12 @@ function make_dir_if_nonexist(dirname)
     end
 end
 
-function collect_concentrations(C_nom, ρi, solute_int)
+function collect_concentrations(C_nom, ρi, op_temp, solute_int)
     # Hardcoding the length the concentrations == length distances + 1...
     C = zeros(length(C_nom), 51)
-    op_temp = 320.
+    #    op_temp = 320.
     for (i,C_nomi) in enumerate(C_nom)
-        S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, solute_int)
+        S, dS, Ckk, T, distances, energies = get_concentration_distance_dependence(C_nomi, ρi, op_temp, solute_int)
         tidx = find( x -> x==op_temp, T  )
         C[i,:] .= vcat(Ckk[tidx,:]...)
         println("ρ = ", ρi)
@@ -344,13 +344,14 @@ function plot_concentration_distance_dependence()
     T = collect(Float64, 0:10:Tf)
     ρ = Float64[ 1.e12, 1.e14, 1.e15, 0.5e16 ]
     C_nom = [ 10., 100., 433., 1000.] ./ 1e6
+    op_temp = 320.0
 
     # Using the lorentzian for the interaction between solute and dislocation
     solute_int = C_Lorentzian{Float64}()
 
     C_all = []
     for (j,ρi) in enumerate(ρ[1:end-1])
-        C = collect_concentrations(C_nom, ρi, solute_int)
+        C = collect_concentrations(C_nom, ρi, op_temp, solute_int)
 
         push!(C_all, C)
 

@@ -29,7 +29,7 @@ using SaddleSearch
 
 
 function line_tension_model( N, potential="Normal", stress=zeros(3,3), interaction_type="C",
-                             C_nom=433./1e6, ρ=1.e15, equilibrium=true, mcclean=true )
+                             C_nom=433./1e6, ρ=1.e15, temp=320.0, equilibrium=true, mcclean=true )
     # Define dislocation
     # > N = Number of images for the String method
     # > C_nom is the nominal carbon concentration
@@ -69,7 +69,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
 
     if mcclean
         # Get the splines (and it's derivative) which determine the concentration of a solute with distance
-        C, dC = get_concentration_distance_dependence_splines(C_nom, ρ, interaction)
+        C, dC = get_concentration_distance_dependence_splines(C_nom, ρ, temp, interaction)
     else
         C = dC = x -> 0
     end
@@ -79,7 +79,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     if equilibrium
         conv_sitelabel = convert_sitelabel_to_pos_function()
         ref_conc_sum = get_reference_concentration(get_paths(zeros(2))..., conv_sitelabel, C)
-        temp = 320.0 # K
+        #        temp = 320.0 # K
         # Test
         # p_solute = ( √2 / 3 * 2.87) .* [√3/2 0.5 (46 * 3/2 * √(3/2))]' 
         # solutes_normal = solutes = Solutes{Float64}( interact, interaction, p_solute )
@@ -502,30 +502,35 @@ GPa_to_eVÅ³ = 1/160.21766208
 μ = 1. * GPa_to_eVÅ³  # GPa
 
 # println(ARGS)
+interaction_type="C"
+# C_nom=433./1e6
+ρ=1.e15
+equilibrium=true
+mcclean=true
 
 if length(ARGS) != 0
     N = parse(Int, ARGS[1])
     potential = ARGS[2]
     scale = parse(Float64,ARGS[3])
     name = ARGS[4]
+    interaction_type = ARGS[5]
     C_nom = parse(Float64,ARGS[6])/1e6
+    ρ = 1.0*10^(parse(Int64,ARGS[7]))
+    temp = parse(Float64,ARGS[8])
 else
     N = 35
     potential = "dTB"
     scale = 1.0
     name = "test_hessian"
     eq = true
+    C_nom = 0.0
+    temp = 320.0
 end
 # Stress in yz is what we want for this coordinate system
 stress = (- scale * μ ) .* [ 0  0  0 ;
                              0  0  1 ;
                              0  1  0. ]
 
-interaction_type="C"
-# C_nom=433./1e6
-ρ=1.e15
-equilibrium=true
-mcclean=true
 
 if potential == "sdTB"
     a = 126.62
@@ -557,4 +562,4 @@ stress = SMatrix{3,3}( (- scale * μ ) .* [ 0  b  0 ;
 
 #  rotate_stress_tensor( stress )
 
-line_tension_model(N, potential, stress, interaction_type, C_nom, ρ, equilibrium, mcclean )
+line_tension_model(N, potential, stress, interaction_type, C_nom, ρ, temp, equilibrium, mcclean )

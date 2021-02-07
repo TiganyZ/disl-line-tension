@@ -246,7 +246,7 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
     core_position = zeros(2)
     positions = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concs = concentrations(positions, core_position, conc_func)
-    return maximum(concs)
+    return maximum(concs) * √3/2 * 2.87
 end
 
 
