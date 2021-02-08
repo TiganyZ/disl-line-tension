@@ -246,7 +246,7 @@ function get_reference_concentration(forward, backward, convert_sitelabel, conc_
     core_position = zeros(2)
     positions = get_all_trap_positions(forward, backward, core_position, convert_sitelabel)
     concs = concentrations(positions, core_position, conc_func)
-    return maximum(concs) * √3/2 * 2.87
+    return maximum(concs) #  * √3/2 * 2.87
 end
 
 
@@ -327,7 +327,7 @@ function get_interaction_energy(solutes::ConcSolutes, core_position, write=false
     positions, occupancy = get_position_and_scaled_concentration(solutes, core_position, scaling, forward, backward)
     
     #    E_int = 0.0
-    E_int = zeros(size(positions,2))
+    E_int = zeros(eltype(core_position),size(positions,2))
     for i in 1:size(positions,2)
         E_int[i] += get_single_interaction_energy(solutes, core_position, occupancy[i], positions[:,i])
     end

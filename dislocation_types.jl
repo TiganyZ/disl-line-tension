@@ -216,7 +216,7 @@ end
 
 # function gradient_chunk
 
-function gradient_interaction_energy(S::ConcSolutes, core_position, direction, finite=true, s=1e-3, order=:second)
+function gradient_interaction_energy(S::ConcSolutes, core_position, direction, finite=false, s=1e-3, order=:second)
     # ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
   
     # > When ForwardDiff gets to the concentration spline, it
@@ -233,7 +233,7 @@ function gradient_interaction_energy(S::ConcSolutes, core_position, direction, f
             return (get_interaction_energy(S,core_position + h) - get_interaction_energy(S,core_position)) / s
         end
     else
-        return ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position) 
+        return ForwardDiff.gradient(y->get_interaction_energy(S,y), core_position)
     end
 end
 
@@ -266,6 +266,26 @@ function gradient_point(D::Disl_line, x, j, N, direction)
     
     E_line =  elastic + D.potential.∂ΔEₚ[direction]( (Pⱼ[1:2]./conv)... ) + 1000*cross( D.d.σ * D.d.b, l )[direction]*conv - E_int
 
+    
+    return E_line
+end
+
+
+function gradient_point_no_int(D::Disl_line, x, j, N, direction)
+    ΔPⱼₖ, Pⱼ, l = get_energy_quantities(x, j, N)    
+
+    #  from internal units to Å
+    conv = √2 / 3 * 2.87
+    b_mag = √3/2 * 2.87
+    
+    if j > 1
+        ΔPᵢⱼ, Pᵢ, lᵢ = get_energy_quantities(x, j-1, N)    
+        elastic = D.d.K * ( ΔPⱼₖ[direction]*conv - ΔPᵢⱼ[direction]*conv )
+    else
+        elastic = D.d.K * ( ΔPⱼₖ[direction]*conv  )
+    end
+    
+    E_line =  elastic + D.potential.∂ΔEₚ[direction]( (Pⱼ[1:2]./conv)... ) + 1000*cross( D.d.σ * D.d.b, l )[direction]*conv 
     
     return E_line
 end
@@ -308,6 +328,21 @@ function hessian_point(D::Disl_line, x, j, k, N, xi, xj)
 end
 
 
+function gradient_just_int(D::Disl_line, x, j, N)
+    ΔPⱼₖ, Pⱼ, l = get_energy_quantities(x, j, N)    
+    
+    #  from internal units to Å
+    conv = √2 / 3 * 2.87
+    b_mag = √3/2 * 2.87
+    E_int = 0.0
+
+    if D.solutes.interact
+        if isa(D.solutes, ConcSolutes)
+            E_int = gradient_interaction_energy(D.solutes, conv * Pⱼ[1:2], 1)
+        end
+    end
+    return E_int
+end
 
 function construct_gradient(d::Disl_line, x, write)
     N = ceil(Int64, size(x,1)/2)
@@ -329,8 +364,19 @@ function construct_gradient(d::Disl_line, x, write)
      #    xi = SharedArray{Float64,1}(x)
 
     if write 
-        for j in 1:2N
-            E_line[j] = gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N))
+        if isa(d.solutes, ConcSolutes)
+            for j in 1:2N
+                E_line[j] += gradient_point_no_int(d, x, (j-1)%N + 1, N, ceil(Int64, j/N))
+            end
+            for j in 1:N
+                g = -gradient_just_int(d, x, j, N)
+                E_line[j] += g[1]
+                E_line[j+N] += g[2]
+            end
+        else
+            for j in 1:2N
+                E_line[j] = gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N))
+            end
         end
     end
     #E_line = SVector{2N}( [gradient_point(d, x, (j-1)%N + 1, N, ceil(Int64, j/N)) for j in 1:2N] )
