@@ -184,8 +184,8 @@ function dE(V,x)
     global N_iter_total, N_images
 
     img = N_iter_total % ( N_images ) + 1
-    write_grad = (img == 1 || img == N_images) ? false : true
-
+    # write_grad = (img == 1 || img == N_images) ? false : true
+    write_grad = true
     
     write_images(V,x)
     
