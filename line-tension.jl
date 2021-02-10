@@ -123,7 +123,7 @@ function line_tension_model( N, potential="Normal", stress=zeros(3,3), interacti
     tol = 0.1 
     tolP = 1e-3
     maxnit = 500_000
-    verbose = 3
+    verbose = 4
 
 
     # Find energy scale, μ, for the preconditioner
@@ -318,12 +318,18 @@ function write_images(V,x)
 
     (img_count == 0? mode = "w" : mode = "a")
    
+
+    write_object_to_file(energy(V,x),
+                         "etot_final_$file_ext", mode)
+
+
     # Trap positions occupancy
     if N_iter_total > 0 && img_count == 0
         if N_iter_total == N_images
             cp("trap_positions_occupancy", "trap_positions_occupancy_initial"; remove_destination=true)
         else
             cp("trap_positions_occupancy", "trap_positions_occupancy_final"; remove_destination=true)
+            cp("etot_final_$file_ext", "etot_current_$file_ext"; remove_destination=true)
         end
     end
 
@@ -333,15 +339,7 @@ function write_images(V,x)
         println(io, "Image $(img_count + 1)")
     end
   
-
-    # write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
-    #                      "image_positions_final_$(file_ext)_$img_count", "w")
-    # write_object_to_file(reshape( x,  ceil(Int64, size(x,1)/2), 2 ),
-    #                      "image_positions_final_$(file_ext)_ALL", mode)
     
-    write_object_to_file(energy(V,x),
-                         "etot_final_$file_ext", mode)
-
     N_iter_total += 1
 
 end
