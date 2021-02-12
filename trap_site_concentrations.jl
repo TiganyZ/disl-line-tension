@@ -79,7 +79,7 @@ function get_paths(core_position)
     Ei_H_paths, H_Ei_paths, H_Ef_paths, Ef_H_paths = trap_site_paths()
     Ei_H_isolated, H_Ei_isolated, H_Ef_isolated, Ef_H_isolated = isolated_trap_sites()
 
-    midpoint = (1/6 * √2 * 2.87 * √3)
+    midpoint = ((1/6) * √2 * 2.87 * √3)
     if core_position[1] < midpoint
         forward  = Ei_H(), Ei_H_paths, Ei_H_isolated
         backward = H_Ei(), H_Ei_paths, H_Ei_isolated
@@ -166,10 +166,10 @@ function check_p(p)
     end
 end
 
-get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  core_position[1] / (1/6. * √2 * 2.87 * √3))
-get_proportion(region::H_Ei, core_position) = check_p(        core_position[1] / (1/6. * √2 * 2.87 * √3))
-get_proportion(region::H_Ef, core_position) = check_p( 1.0 - (core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3) )
-get_proportion(region::Ef_H, core_position) = check_p(       (core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3) )
+get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  (core_position[1] / (1/6. * √2 * 2.87 * √3)))
+get_proportion(region::H_Ei, core_position) = 1.0 - get_proportion(Ei_H(), core_position)
+get_proportion(region::H_Ef, core_position) = check_p( 1.0 - ((core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3)) )
+get_proportion(region::Ef_H, core_position) = 1.0 - get_proportion(H_Ef(), core_position)
 
 get_dproportion(region::Union{Ei_H,H_Ef}, core_position, direction) = direction == 1 ? - 1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
 get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction == 1 ?   1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
