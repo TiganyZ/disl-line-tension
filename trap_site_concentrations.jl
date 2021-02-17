@@ -168,7 +168,7 @@ end
 
 get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  (core_position[1] / (1/6. * √2 * 2.87 * √3)))
 get_proportion(region::H_Ei, core_position) = 1.0 - get_proportion(Ei_H(), core_position)
-get_proportion(region::H_Ef, core_position) = check_p( 1.0 - ((core_position[1] - (1/6. * √2 * 2.87 * √3)) / (1/6. * √2 * 2.87 * √3)) )
+get_proportion(region::H_Ef, core_position) = get_proportion(Ei_H(), core_position-[(1/6. * √2 * 2.87 * √3),0.])
 get_proportion(region::Ef_H, core_position) = 1.0 - get_proportion(H_Ef(), core_position)
 
 get_dproportion(region::Union{Ei_H,H_Ef}, core_position, direction) = direction == 1 ? - 1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
