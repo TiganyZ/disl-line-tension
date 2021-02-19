@@ -194,7 +194,7 @@ function energy_point(D::Disl_line, x, j, N, detail=false)
                 # Therefore, to go from sim to trap site in angstrom 
                 E_int = get_interaction_energy(D.solutes, conv * Pⱼ[1:2], false)
             else
-                E_int = get_interaction_energy(D.solutes, Pⱼ[1:2], true)
+                E_int = get_interaction_energy(D.solutes, conv * Pⱼ[1:2], true)
             end
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
