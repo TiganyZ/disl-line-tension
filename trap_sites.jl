@@ -434,7 +434,7 @@ function trap_site_paths()
                                              SiteLabel("Ei4",  4) => SiteLabel("H6", 3),
                                              SiteLabel("Ei6",  4) => SiteLabel("H5", 3),
                                              SiteLabel("Ei7",  4) => SiteLabel("H4", 3),
-                                             SiteLabel("Ei8",  4) => SiteLabel("H2", 4),
+                                             SiteLabel("Ei8",  4) => SiteLabel("H2", 3),
                                              SiteLabel("Ei9",  4) => SiteLabel("H5", 5),
 
                                              SiteLabel("Ei2",  5) => SiteLabel("H1", 6),
