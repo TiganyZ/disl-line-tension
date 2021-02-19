@@ -188,14 +188,7 @@ function energy_point(D::Disl_line, x, j, N, detail=false)
     conv = √2 / 3 * 2.87
     if D.solutes.interact
         if isa(D.solutes, ConcSolutes)
-            if detail
-                # in simulation       ip2_x      = √3
-                # In trap site stuff, ip2_trap_x = (2/6. * √2 * 2.87 * √3)
-                # Therefore, to go from sim to trap site in angstrom 
-                E_int = get_interaction_energy(D.solutes, conv * Pⱼ[1:2], false)
-            else
-                E_int = get_interaction_energy(D.solutes, conv * Pⱼ[1:2], true)
-            end
+            E_int = get_interaction_energy(D.solutes,  Pⱼ[1:2], !detail)
         else
             E_int = get_interaction_energy(D.solutes, j, Pⱼ, false, false)
         end

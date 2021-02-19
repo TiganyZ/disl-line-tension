@@ -166,13 +166,14 @@ function check_p(p)
     end
 end
 
-get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  (core_position[1] / (1/6. * √2 * 2.87 * √3)))
-get_proportion(region::H_Ei, core_position) = 1.0 - get_proportion(Ei_H(), core_position)
-get_proportion(region::H_Ef, core_position) = get_proportion(Ei_H(), core_position-[(1/6. * √2 * 2.87 * √3),0.])
-get_proportion(region::Ef_H, core_position) = 1.0 - get_proportion(H_Ef(), core_position)
+cp1(core_position) =   core_position[1] / (1/6. * √2 * 2.87 * √3)
+cp2(core_position) = ( core_position[1] - (1/6. * √2 * 2.87 * √3) ) / (1/6. * √2 * 2.87 * √3)
 
-get_dproportion(region::Union{Ei_H,H_Ef}, core_position, direction) = direction == 1 ? - 1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
-get_dproportion(region::Union{H_Ei,Ef_H}, core_position, direction) = direction == 1 ?   1.0 / (1/6. * √2 * 2.87 * √3) : 0.0
+get_proportion(region::Ei_H, core_position) = check_p( 1.0 -  cp1(core_position))
+get_proportion(region::H_Ei, core_position) = check_p(        cp1(core_position)) 
+get_proportion(region::H_Ef, core_position) = check_p( 1.0 -  cp2(core_position))
+get_proportion(region::Ef_H, core_position) = check_p(        cp2(core_position))
+
 
 # ////////////////////////////////////////////////////////////////////////////////
 # >>>>>>>>>>          Scaling during core motion          <<<<<<<<<<
@@ -206,11 +207,11 @@ function get_scaling_for_all_sites(core_position, forward, backward, references)
 
     scaling = Dict{SiteLabel,eltype(core_position)}()
     for (k,v) in trap_path_forward
-        scaling[k] = scale_one_to_many_interaction(pf, pb, k, v, trap_path_forward, trap_path_backward)
+        scaling[k] = 1.0 # scale_one_to_many_interaction(pf, pb, k, v, trap_path_forward, trap_path_backward)
     end
 
     for (k,v) in trap_path_backward
-        scaling[k] = scale_one_to_many_interaction(pb, pf, k, v, trap_path_backward, trap_path_forward)
+        scaling[k] = 1.0 # scale_one_to_many_interaction(pb, pf, k, v, trap_path_backward, trap_path_forward)
     end
 
     for k in isolated_forward
@@ -254,10 +255,6 @@ end
 # >>>>>>>>>>         Definining occupancies          <<<<<<<<<<
 # ////////////////////////////////////////////////////////////////////////////////
 
-get_site_from_region(R::Ei_H) = SiteLabel("Ei1",  1)
-get_site_from_region(R::H_Ei) = SiteLabel("H1",  4)
-get_site_from_region(R::H_Ef) = SiteLabel("H1",  1)
-get_site_from_region(R::Ef_H) = SiteLabel("Ef1",  4)
 
 function get_reference_energy(region, references, energies)
     site = get_site_from_region(region)
@@ -269,20 +266,10 @@ function get_reference_energy(region, references, energies)
 end
 
 function partial_occupancies(region, references, scaling, energies, T, ref_conc_sum)
-    # Remember, the degeneracy factor in the in Maxwell-Boltzmann
-    # statistics come for sites which will have the same energy but
-    # they are distinguishable by other means. Does this apply here?
-
-    # Perhaps make function which modifies the true concentration, as one can imagine a particle taking a path to the other dislocation smoothly. 
-    
-    #    E_ref = get_reference_energy(region, references, energies)
     kb = 0.000086173324 # eV/K
-    #    e_ref = energies
-    Z = sum( exp(Ei/(kb*T)) for Ei in energies)
-    #    C = sum(concs) * 
-    #    norm =  ref_conc_sum / C
 
-    #  > Here, arbitrarily dividing my the number of particles, assuming the total number of solutes per b is 1. 
+    Z = sum( exp(Ei/(kb*T)) for Ei in energies)
+
     return [ ref_conc_sum * scaling[i] * exp(energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
 end
 
