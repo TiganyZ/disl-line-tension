@@ -319,10 +319,6 @@ function write_images(V,x)
     (img_count == 0? mode = "w" : mode = "a")
    
 
-    write_object_to_file(energy(V,x),
-                         "etot_final_$file_ext", mode)
-
-
     # Trap positions occupancy
     if N_iter_total > 0 && img_count == 0
         if N_iter_total == N_images
@@ -332,6 +328,11 @@ function write_images(V,x)
             cp("etot_final_$file_ext", "etot_current_$file_ext"; remove_destination=true)
         end
     end
+
+
+    write_object_to_file(energy(V,x),
+                         "etot_final_$file_ext", mode)
+
 
     write_line_energy_of_image(V, x, img_count, "current_")
 
