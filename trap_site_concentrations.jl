@@ -265,12 +265,26 @@ function get_reference_energy(region, references, energies)
     return energies[index]
 end
 
-function partial_occupancies(region, references, scaling, energies, T, ref_conc_sum)
+function fermi_dirac(ε, T, μ)
     kb = 0.000086173324 # eV/K
+    return 1. / ( exp( (ε - μ) / (kb*T) ) + 1 )
+end
 
-    Z = sum( exp(Ei/(kb*T)) for Ei in energies)
+function partial_occupancies(region, references, scaling, energies, T, ref_conc_sum)
+    # Fermi-Dirac distribution function 
+    # > These occupations will be between 1 and 0, only at high temperature does the occupation reach the maxwell-boltzmann distribution. 
 
-    return [ ref_conc_sum * scaling[i] * exp(energies[i]/(kb*T)) / Z  for i in 1:length(energies)]
+    # Ei are the binding energies
+    # 
+    # Formation energies are -Ei
+    # Ei = -(Ed+C - Ed - mu)
+    # εᵢ = (-Ei) + 1.03177 eV
+    # Can try with just the ferrite one such that we have it as reference to ferrite
+  
+    # Δμ = 1.03177 # eV for reference to cementite phase
+    Δμ = 0.0
+
+    return [ scaling[i] * fermi_dirac( -energies[i], T, Δμ)  for i in 1:length(energies)]
 end
 
 # ////////////////////////////////////////////////////////////////////////////////
